@@ -1,10 +1,13 @@
-import { Component, inject, OnInit, signal } from "@angular/core";
+import { Component, computed, inject, OnInit, signal } from "@angular/core";
 import { FormsModule } from "@angular/forms";
 import { HostsService } from "./hosts.service";
 import { ThemeService } from "./theme.service";
 import { SshService } from "./ssh.service";
 import { TerminalComponent } from "./terminal.component";
+import { DashboardComponent } from "./dashboard.component";
 import { Host } from "./host.model";
+
+type View = "terminals" | "dashboard";
 
 /** An open (or recently closed) SSH session shown as a terminal tab. */
 interface Session {
@@ -33,7 +36,7 @@ interface SecretPrompt {
 
 @Component({
   selector: "app-root",
-  imports: [FormsModule, TerminalComponent],
+  imports: [FormsModule, TerminalComponent, DashboardComponent],
   templateUrl: "./app.component.html",
   styleUrl: "./app.component.css",
 })
@@ -44,6 +47,13 @@ export class AppComponent implements OnInit {
 
   readonly hosts = this.hostsService.hosts;
   readonly theme = this.themeService.theme;
+
+  readonly view = signal<View>("terminals");
+  /** Host ids connected at least once this session — the dashboard polls these. */
+  readonly connectedHostIds = signal<Set<string>>(new Set());
+  readonly dashboardHosts = computed(() =>
+    this.hosts().filter((h) => this.connectedHostIds().has(h.id)),
+  );
 
   readonly sessions = signal<Session[]>([]);
   readonly activeId = signal<string | null>(null);
@@ -71,6 +81,10 @@ export class AppComponent implements OnInit {
 
   toggleTheme(): void {
     this.themeService.toggle();
+  }
+
+  setView(view: View): void {
+    this.view.set(view);
   }
 
   // --- Sessions / tabs ---
@@ -101,6 +115,8 @@ export class AppComponent implements OnInit {
       const id = await this.ssh.connect(host.id, secret);
       this.sessions.update((list) => [...list, { id, host, closed: false }]);
       this.activeId.set(id);
+      // Now eligible for metrics polling on the dashboard.
+      this.connectedHostIds.update((set) => new Set(set).add(host.id));
     } catch (e) {
       const msg = String(e);
       const usesKey = !!host.identity_file && host.identity_file.length > 0;

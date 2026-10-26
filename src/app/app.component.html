@@ -10,6 +10,15 @@
     <span class="brand-name">SSH Manager</span>
   </div>
 
+  <nav class="nav">
+    <button type="button" [class.active]="view() === 'terminals'" (click)="setView('terminals')">
+      Terminals
+    </button>
+    <button type="button" [class.active]="view() === 'dashboard'" (click)="setView('dashboard')">
+      Dashboard
+    </button>
+  </nav>
+
   <button
     class="theme-toggle"
     type="button"
@@ -88,39 +97,49 @@
       </div>
     }
 
-    @if (sessions().length === 0) {
-      <div class="welcome">
-        <h2>No open sessions</h2>
-        <p>Click a host in the sidebar to open a terminal.</p>
-        <button class="primary" type="button" (click)="openAddForm()">Add a host</button>
-      </div>
-    } @else {
-      <div class="tabs">
-        @for (session of sessions(); track session.id) {
-          <div
-            class="tab"
-            [class.active]="activeId() === session.id"
-            [class.closed]="session.closed"
-            (click)="setActive(session.id)"
-          >
-            <span class="tab-label">{{ session.host.name || session.host.hostname }}</span>
-            <button class="tab-close" type="button" (click)="closeSession(session.id, $event)" aria-label="Close session">×</button>
-          </div>
-        }
-      </div>
+    <!-- Terminals view (kept mounted so sessions survive view switches). -->
+    <section class="view-terminals" [style.display]="view() === 'terminals' ? 'flex' : 'none'">
+      @if (sessions().length === 0) {
+        <div class="welcome">
+          <h2>No open sessions</h2>
+          <p>Click a host in the sidebar to open a terminal.</p>
+          <button class="primary" type="button" (click)="openAddForm()">Add a host</button>
+        </div>
+      } @else {
+        <div class="tabs">
+          @for (session of sessions(); track session.id) {
+            <div
+              class="tab"
+              [class.active]="activeId() === session.id"
+              [class.closed]="session.closed"
+              (click)="setActive(session.id)"
+            >
+              <span class="tab-label">{{ session.host.name || session.host.hostname }}</span>
+              <button class="tab-close" type="button" (click)="closeSession(session.id, $event)" aria-label="Close session">×</button>
+            </div>
+          }
+        </div>
 
-      <div class="terminals">
-        @for (session of sessions(); track session.id) {
-          <div class="terminal-slot" [style.display]="activeId() === session.id ? 'block' : 'none'">
-            <app-terminal
-              [sessionId]="session.id"
-              [active]="activeId() === session.id"
-              (closed)="markClosed(session.id)"
-            />
-          </div>
-        }
-      </div>
-    }
+        <div class="terminals">
+          @for (session of sessions(); track session.id) {
+            <div class="terminal-slot" [style.display]="activeId() === session.id ? 'block' : 'none'">
+              <app-terminal
+                [sessionId]="session.id"
+                [active]="activeId() === session.id"
+                (closed)="markClosed(session.id)"
+              />
+            </div>
+          }
+        </div>
+      }
+    </section>
+
+    <!-- Dashboard view. -->
+    <app-dashboard
+      class="view-dashboard"
+      [style.display]="view() === 'dashboard' ? 'block' : 'none'"
+      [hosts]="dashboardHosts()"
+    />
   </main>
 </div>
 

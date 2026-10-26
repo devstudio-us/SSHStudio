@@ -40,6 +40,32 @@
   letter-spacing: 0.01em;
 }
 
+.nav {
+  display: flex;
+  gap: 2px;
+  padding: 3px;
+  border-radius: 9px;
+  background-color: var(--surface-2);
+}
+
+.nav button {
+  padding: 0.3rem 0.85rem;
+  font-size: 0.85rem;
+  font-weight: 500;
+  background: transparent;
+  color: var(--text-muted);
+}
+
+.nav button:hover {
+  color: var(--text);
+}
+
+.nav button.active {
+  background-color: var(--surface);
+  color: var(--text);
+  box-shadow: var(--shadow);
+}
+
 .theme-toggle {
   display: inline-flex;
   align-items: center;
@@ -114,6 +140,18 @@
   display: flex;
   flex-direction: column;
   overflow: hidden;
+}
+
+/* Both views fill the content area; visibility is toggled via inline display. */
+.view-terminals {
+  flex: 1;
+  min-height: 0;
+  flex-direction: column;
+}
+
+.view-dashboard {
+  flex: 1;
+  min-height: 0;
 }
 
 /* ---- Host list ---- */

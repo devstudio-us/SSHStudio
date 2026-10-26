@@ -45,9 +45,16 @@ enum SessionState {
 /// Tauri-managed state: a map of session id -> state. Wrapped in an
 /// `Arc<Mutex<..>>` so the per-session task can clone the map and remove its own
 /// entry when the shell exits.
+///
+/// `secrets` caches the password/passphrase used for a successful connect,
+/// keyed by host id, so the metrics poller can reopen a session without
+/// re-prompting. It lives only in memory for the session's lifetime and is
+/// never written to disk or logged. Presence of a key also marks a host as
+/// "connected at least once this session".
 #[derive(Default, Clone)]
 pub struct SessionManager {
     sessions: Arc<Mutex<HashMap<String, SessionState>>>,
+    secrets: Arc<Mutex<HashMap<String, Option<String>>>>,
 }
 
 impl SessionManager {
@@ -62,12 +69,27 @@ impl SessionManager {
             _ => None,
         }
     }
+
+    /// Remember the secret used to connect to a host this session.
+    fn remember_secret(&self, host_id: &str, secret: Option<String>) {
+        self.secrets
+            .lock()
+            .unwrap()
+            .insert(host_id.to_string(), secret);
+    }
+
+    /// The cached secret for a host: outer `None` means the host has not been
+    /// connected this session; `Some(inner)` gives the secret (which may itself
+    /// be `None` for an unencrypted key).
+    pub fn cached_secret(&self, host_id: &str) -> Option<Option<String>> {
+        self.secrets.lock().unwrap().get(host_id).cloned()
+    }
 }
 
 /// russh client handler. Its only job is host-key verification; russh calls
 /// `check_server_key` during the handshake. On rejection we stash a readable
 /// reason that `connect` surfaces to the caller.
-struct Client {
+pub(crate) struct Client {
     /// Identifier used as the known_hosts key, e.g. "example.com:22".
     server_id: String,
     known_hosts_path: PathBuf,
@@ -165,19 +187,16 @@ fn classify_key_error(e: &russh::keys::Error, had_secret: bool) -> String {
     }
 }
 
-/// Connect to a host, authenticate, open a shell on a PTY, and start streaming.
+/// Open a TCP+SSH connection to a host, verify its host key, and authenticate.
+/// Returns the authenticated session handle; the caller decides what channels
+/// to open on it (a shell for `connect`, exec channels for the metrics poller).
 ///
-/// `password` doubles as the key passphrase when the host uses an identity
-/// file. Returns the new session id. On a recoverable auth gap it returns the
-/// sentinels `PASSWORD_REQUIRED` / `PASSPHRASE_REQUIRED` so the UI can prompt.
-#[tauri::command]
-pub async fn connect(
-    app: AppHandle,
-    state: State<'_, SessionManager>,
-    host_id: String,
-    password: Option<String>,
-) -> Result<String, String> {
-    let host = hosts::get_host(&app, &host_id)?.ok_or("Host not found.")?;
+/// `secret` is the password, or the key passphrase for an identity-file host.
+pub(crate) async fn open_authenticated(
+    app: &AppHandle,
+    host: &crate::hosts::Host,
+    secret: Option<&str>,
+) -> Result<client::Handle<Client>, String> {
     if host.user.trim().is_empty() {
         return Err("This host has no user set. Edit the host and add one.".to_string());
     }
@@ -186,7 +205,7 @@ pub async fn connect(
     let reject_reason = Arc::new(Mutex::new(None));
     let handler = Client {
         server_id: server_id.clone(),
-        known_hosts_path: known_hosts_path(&app)?,
+        known_hosts_path: known_hosts_path(app)?,
         reject_reason: reject_reason.clone(),
     };
 
@@ -203,13 +222,12 @@ pub async fn connect(
                 .unwrap_or_else(|| format!("Could not connect to {server_id}: {e}"))
         })?;
 
-    // --- Authentication ---
     let authed = match host.identity_file.as_deref().filter(|s| !s.is_empty()) {
         Some(identity) => {
-            let path = resolve_identity_path(&app, identity);
+            let path = resolve_identity_path(app, identity);
             let key = Arc::new(
-                load_secret_key(&path, password.as_deref())
-                    .map_err(|e| classify_key_error(&e, password.is_some()))?,
+                load_secret_key(&path, secret)
+                    .map_err(|e| classify_key_error(&e, secret.is_some()))?,
             );
 
             // RSA keys must be offered with an rsa-sha2-256/512 signature;
@@ -234,7 +252,7 @@ pub async fn connect(
                 .success()
         }
         None => {
-            let pw = password.as_deref().ok_or("PASSWORD_REQUIRED")?;
+            let pw = secret.ok_or("PASSWORD_REQUIRED")?;
             session
                 .authenticate_password(&host.user, pw)
                 .await
@@ -245,6 +263,28 @@ pub async fn connect(
     if !authed {
         return Err("Authentication failed.".to_string());
     }
+
+    Ok(session)
+}
+
+/// Connect to a host, authenticate, open a shell on a PTY, and start streaming.
+///
+/// `password` doubles as the key passphrase when the host uses an identity
+/// file. Returns the new session id. On a recoverable auth gap it returns the
+/// sentinels `PASSWORD_REQUIRED` / `PASSPHRASE_REQUIRED` so the UI can prompt.
+#[tauri::command]
+pub async fn connect(
+    app: AppHandle,
+    state: State<'_, SessionManager>,
+    host_id: String,
+    password: Option<String>,
+) -> Result<String, String> {
+    let host = hosts::get_host(&app, &host_id)?.ok_or("Host not found.")?;
+    let session = open_authenticated(&app, &host, password.as_deref()).await?;
+
+    // Remember the working secret so the metrics poller can reconnect without
+    // prompting. Stored in memory only.
+    state.remember_secret(&host_id, password.clone());
 
     // --- Shell on a PTY ---
     let channel = session
