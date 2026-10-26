@@ -177,6 +177,7 @@
       class="view-dashboard"
       [style.display]="view() === 'dashboard' ? 'block' : 'none'"
       [hosts]="dashboardHosts()"
+      (addNote)="openNoteForm($event)"
     />
 
     <!-- Notes view. -->

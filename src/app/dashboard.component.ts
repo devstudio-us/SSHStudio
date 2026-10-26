@@ -1,4 +1,4 @@
-import { Component, input } from "@angular/core";
+import { Component, input, output } from "@angular/core";
 import { MetricsCardComponent } from "./metrics-card.component";
 import { Host } from "./host.model";
 
@@ -15,7 +15,7 @@ import { Host } from "./host.model";
     } @else {
       <div class="dash-grid">
         @for (host of hosts(); track host.id) {
-          <app-metrics-card [host]="host" />
+          <app-metrics-card [host]="host" (addNote)="addNote.emit($event)" />
         }
       </div>
     }
@@ -51,4 +51,6 @@ import { Host } from "./host.model";
 })
 export class DashboardComponent {
   readonly hosts = input.required<Host[]>();
+  /** Bubbled up from a card: the host id to scope a new note to. */
+  readonly addNote = output<string>();
 }

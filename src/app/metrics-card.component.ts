@@ -5,6 +5,7 @@ import {
   computed,
   inject,
   input,
+  output,
   signal,
 } from "@angular/core";
 import { UnlistenFn } from "@tauri-apps/api/event";
@@ -27,6 +28,9 @@ type Status = "pending" | "ok" | "error";
         <span class="dot" [class]="status()"></span>
         <span class="name">{{ host().name || host().hostname }}</span>
         <span class="addr">{{ host().hostname }}:{{ host().port }}</span>
+        <button class="add-note" type="button" (click)="addNote.emit(host().id)" title="Add a note for this host">
+          + note
+        </button>
       </header>
 
       @if (status() === "error") {
@@ -117,6 +121,17 @@ type Status = "pending" | "ok" | "error";
         font-size: 0.78rem;
         color: var(--text-muted);
       }
+      .add-note {
+        padding: 0.2rem 0.5rem;
+        font-size: 0.74rem;
+        background-color: var(--surface-2);
+        border: 1px solid var(--border);
+        color: var(--text-muted);
+      }
+      .add-note:hover {
+        color: var(--accent);
+        border-color: var(--accent);
+      }
       .msg {
         margin: 0;
         font-size: 0.82rem;
@@ -190,6 +205,8 @@ type Status = "pending" | "ok" | "error";
 })
 export class MetricsCardComponent implements OnInit, OnDestroy {
   readonly host = input.required<Host>();
+  /** Emits this host's id to open the note form scoped to it. */
+  readonly addNote = output<string>();
 
   private readonly metricsService = inject(MetricsService);
   readonly metrics = signal<HostMetrics | null>(null);
