@@ -248,8 +248,19 @@
   transition: opacity 0.12s ease, color 0.12s ease, background-color 0.12s ease;
 }
 
+.host-actions {
+  display: flex;
+  gap: 0.1rem;
+  flex-shrink: 0;
+}
+
 .host-item:hover .icon-btn {
   opacity: 1;
+}
+
+.icon-btn:hover {
+  color: var(--text);
+  background-color: var(--surface-hover);
 }
 
 .icon-btn.danger:hover {

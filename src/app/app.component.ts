@@ -60,7 +60,9 @@ export class AppComponent implements OnInit {
   readonly connectingId = signal<string | null>(null);
   readonly error = signal<string>("");
 
-  readonly showAddForm = signal(false);
+  readonly showHostForm = signal(false);
+  /** null = adding a new host; otherwise the id of the host being edited. */
+  readonly editingHostId = signal<string | null>(null);
   form: HostForm = AppComponent.blankForm();
 
   readonly secretPrompt = signal<SecretPrompt | null>(null);
@@ -200,31 +202,53 @@ export class AppComponent implements OnInit {
     this.secretResolver = null;
   }
 
-  // --- Add / delete host ---
+  // --- Add / edit / delete host ---
 
   openAddForm(): void {
     this.form = AppComponent.blankForm();
-    this.showAddForm.set(true);
+    this.editingHostId.set(null);
+    this.showHostForm.set(true);
   }
 
-  closeAddForm(): void {
-    this.showAddForm.set(false);
+  openEditForm(host: Host, event: Event): void {
+    event.stopPropagation();
+    this.form = {
+      name: host.name,
+      hostname: host.hostname,
+      port: host.port,
+      user: host.user,
+      identity_file: host.identity_file ?? "",
+      tags: host.tags.join(", "),
+      notes: host.notes,
+    };
+    this.editingHostId.set(host.id);
+    this.showHostForm.set(true);
   }
 
-  async addHost(): Promise<void> {
+  closeHostForm(): void {
+    this.showHostForm.set(false);
+  }
+
+  async saveHost(): Promise<void> {
     this.error.set("");
+    const identity = this.form.identity_file.trim();
+    const fields = {
+      name: this.form.name.trim(),
+      hostname: this.form.hostname.trim(),
+      port: Number(this.form.port) || 22,
+      user: this.form.user.trim(),
+      identity_file: identity.length > 0 ? identity : null,
+      tags: this.splitTags(this.form.tags),
+      notes: this.form.notes.trim(),
+    };
     try {
-      const identity = this.form.identity_file.trim();
-      await this.hostsService.add({
-        name: this.form.name.trim(),
-        hostname: this.form.hostname.trim(),
-        port: Number(this.form.port) || 22,
-        user: this.form.user.trim(),
-        identity_file: identity.length > 0 ? identity : null,
-        tags: this.splitTags(this.form.tags),
-        notes: this.form.notes.trim(),
-      });
-      this.showAddForm.set(false);
+      const editingId = this.editingHostId();
+      if (editingId) {
+        await this.hostsService.update({ id: editingId, ...fields });
+      } else {
+        await this.hostsService.add(fields);
+      }
+      this.showHostForm.set(false);
     } catch (e) {
       this.error.set(String(e));
     }
