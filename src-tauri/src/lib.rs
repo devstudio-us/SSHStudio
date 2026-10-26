@@ -1,5 +1,6 @@
 mod hosts;
 mod metrics;
+mod notes;
 mod ssh;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -20,6 +21,10 @@ pub fn run() {
             ssh::resize_pty,
             metrics::start_metrics,
             metrics::stop_metrics,
+            notes::list_notes,
+            notes::add_note,
+            notes::update_note,
+            notes::delete_note,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
