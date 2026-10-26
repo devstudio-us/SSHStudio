@@ -420,8 +420,15 @@ button.ghost:hover {
 }
 
 /* ---- Terminal area ---- */
+.term-body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+}
+
 .terminals {
   flex: 1;
+  min-width: 0;
   min-height: 0;
   background-color: var(--bg);
   position: relative;

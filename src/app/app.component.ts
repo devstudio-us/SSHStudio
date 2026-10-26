@@ -6,6 +6,7 @@ import { SshService } from "./ssh.service";
 import { TerminalComponent } from "./terminal.component";
 import { DashboardComponent } from "./dashboard.component";
 import { NotesManagerComponent } from "./notes-manager.component";
+import { NotePanelComponent } from "./note-panel.component";
 import { NotesService } from "./notes.service";
 import { Host } from "./host.model";
 import { Note } from "./note.model";
@@ -55,6 +56,7 @@ interface SecretPrompt {
     TerminalComponent,
     DashboardComponent,
     NotesManagerComponent,
+    NotePanelComponent,
   ],
   templateUrl: "./app.component.html",
   styleUrl: "./app.component.css",
@@ -74,6 +76,10 @@ export class AppComponent implements OnInit {
   readonly connectedHostIds = signal<Set<string>>(new Set());
   readonly dashboardHosts = computed(() =>
     this.hosts().filter((h) => this.connectedHostIds().has(h.id)),
+  );
+  /** The host of the active terminal session — drives the notes side panel. */
+  readonly activeHost = computed(
+    () => this.sessions().find((s) => s.id === this.activeId())?.host ?? null,
   );
 
   readonly sessions = signal<Session[]>([]);

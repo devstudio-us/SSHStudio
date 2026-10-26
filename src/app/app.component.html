@@ -145,16 +145,28 @@
           }
         </div>
 
-        <div class="terminals">
-          @for (session of sessions(); track session.id) {
-            <div class="terminal-slot" [style.display]="activeId() === session.id ? 'block' : 'none'">
-              <app-terminal
-                [sessionId]="session.id"
-                [active]="activeId() === session.id"
-                [pendingCommand]="session.pendingCommand ?? ''"
-                (closed)="markClosed(session.id)"
-              />
-            </div>
+        <div class="term-body">
+          <div class="terminals">
+            @for (session of sessions(); track session.id) {
+              <div class="terminal-slot" [style.display]="activeId() === session.id ? 'block' : 'none'">
+                <app-terminal
+                  [sessionId]="session.id"
+                  [active]="activeId() === session.id"
+                  [pendingCommand]="session.pendingCommand ?? ''"
+                  (closed)="markClosed(session.id)"
+                />
+              </div>
+            }
+          </div>
+
+          @if (activeHost(); as host) {
+            <app-note-panel
+              [host]="host"
+              [notes]="notes()"
+              (run)="runNote($event)"
+              (edit)="openNoteEdit($event)"
+              (add)="openNoteForm($event)"
+            />
           }
         </div>
       }
