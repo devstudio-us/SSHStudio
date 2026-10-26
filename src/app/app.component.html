@@ -10,15 +10,6 @@
     <span class="brand-name">SSH Manager</span>
   </div>
 
-  <nav class="nav">
-    <button type="button" [class.active]="view() === 'terminals'" (click)="setView('terminals')">
-      Terminals
-    </button>
-    <button type="button" [class.active]="view() === 'dashboard'" (click)="setView('dashboard')">
-      Dashboard
-    </button>
-  </nav>
-
   <button
     class="theme-toggle"
     type="button"
@@ -41,6 +32,32 @@
 
 <div class="layout">
   <aside class="sidebar">
+    <nav class="side-nav">
+      <button type="button" [class.active]="view() === 'terminals'" (click)="setView('terminals')">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="2" y="3" width="20" height="18" rx="2" />
+          <path d="m6 8 3 3-3 3M12 14h5" />
+        </svg>
+        Terminals
+      </button>
+      <button type="button" [class.active]="view() === 'dashboard'" (click)="setView('dashboard')">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="3" width="7" height="9" rx="1" />
+          <rect x="14" y="3" width="7" height="5" rx="1" />
+          <rect x="14" y="12" width="7" height="9" rx="1" />
+          <rect x="3" y="16" width="7" height="5" rx="1" />
+        </svg>
+        Dashboard
+      </button>
+      <button type="button" [class.active]="view() === 'notes'" (click)="setView('notes')">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M4 3h11l5 5v13a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Z" />
+          <path d="M14 3v6h6M8 13h8M8 17h5" />
+        </svg>
+        Notes
+      </button>
+    </nav>
+
     <div class="sidebar-head">
       <h2>Hosts</h2>
       <span class="count">{{ hosts().length }}</span>
@@ -134,6 +151,7 @@
               <app-terminal
                 [sessionId]="session.id"
                 [active]="activeId() === session.id"
+                [pendingCommand]="session.pendingCommand ?? ''"
                 (closed)="markClosed(session.id)"
               />
             </div>
@@ -147,6 +165,18 @@
       class="view-dashboard"
       [style.display]="view() === 'dashboard' ? 'block' : 'none'"
       [hosts]="dashboardHosts()"
+    />
+
+    <!-- Notes view. -->
+    <app-notes-manager
+      class="view-notes"
+      [style.display]="view() === 'notes' ? 'block' : 'none'"
+      [notes]="notes()"
+      [hosts]="hosts()"
+      (addNew)="openNoteForm()"
+      (edit)="openNoteEdit($event)"
+      (remove)="deleteNote($event)"
+      (run)="runNote($event)"
     />
   </main>
 </div>
@@ -220,6 +250,78 @@
           <button class="primary" type="submit">Connect</button>
         </div>
       </form>
+    </div>
+  </div>
+}
+
+<!-- Add / edit note modal -->
+@if (showNoteForm()) {
+  <div class="modal-overlay" (click)="closeNoteForm()">
+    <div class="modal" (click)="$event.stopPropagation()">
+      <h2>{{ editingNoteId() ? "Edit note" : "New note" }}</h2>
+      <form class="host-form" (submit)="$event.preventDefault(); saveNote()">
+        <label>
+          Name
+          <input name="note-name" [(ngModel)]="noteForm.name" placeholder="Restart web server" />
+        </label>
+        <label>
+          Scope
+          <select name="note-scope" [(ngModel)]="noteForm.hostId">
+            <option [ngValue]="null">Global</option>
+            @for (host of hosts(); track host.id) {
+              <option [ngValue]="host.id">{{ host.name || host.hostname }}</option>
+            }
+          </select>
+        </label>
+        <label>
+          Command <span class="hint">(runnable)</span>
+          <textarea name="note-command" rows="3" [(ngModel)]="noteForm.command" placeholder="sudo systemctl restart nginx"></textarea>
+        </label>
+        <label>
+          Text <span class="hint">(note / description)</span>
+          <textarea name="note-text" rows="3" [(ngModel)]="noteForm.text"></textarea>
+        </label>
+        <label>
+          Tags <span class="hint">(comma-separated)</span>
+          <input name="note-tags" [(ngModel)]="noteForm.tags" placeholder="deploy, web" />
+        </label>
+        <div class="modal-actions">
+          <button type="button" class="ghost" (click)="closeNoteForm()">Cancel</button>
+          <button
+            class="primary"
+            type="submit"
+            [disabled]="!noteForm.command.trim() && !noteForm.text.trim()"
+          >
+            {{ editingNoteId() ? "Save changes" : "Add note" }}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+}
+
+<!-- "Run on which host?" picker (global note with no terminal open) -->
+@if (runHostPicker() !== null) {
+  <div class="modal-overlay" (click)="cancelRunHost()">
+    <div class="modal narrow" (click)="$event.stopPropagation()">
+      <h2>Run on which host?</h2>
+      @if (hosts().length === 0) {
+        <p class="error">No hosts to run on. Add a host first.</p>
+      } @else {
+        <ul class="picker-list">
+          @for (host of hosts(); track host.id) {
+            <li>
+              <button type="button" (click)="chooseRunHost(host)">
+                <span class="picker-name">{{ host.name || host.hostname }}</span>
+                <span class="picker-addr">{{ host.user ? host.user + "@" : "" }}{{ host.hostname }}:{{ host.port }}</span>
+              </button>
+            </li>
+          }
+        </ul>
+      }
+      <div class="modal-actions">
+        <button type="button" class="ghost" (click)="cancelRunHost()">Cancel</button>
+      </div>
     </div>
   </div>
 }

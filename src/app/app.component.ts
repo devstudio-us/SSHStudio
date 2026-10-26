@@ -5,15 +5,29 @@ import { ThemeService } from "./theme.service";
 import { SshService } from "./ssh.service";
 import { TerminalComponent } from "./terminal.component";
 import { DashboardComponent } from "./dashboard.component";
+import { NotesManagerComponent } from "./notes-manager.component";
+import { NotesService } from "./notes.service";
 import { Host } from "./host.model";
+import { Note } from "./note.model";
 
-type View = "terminals" | "dashboard";
+type View = "terminals" | "dashboard" | "notes";
 
 /** An open (or recently closed) SSH session shown as a terminal tab. */
 interface Session {
   id: string;
   host: Host;
   closed: boolean;
+  /** A command to run once the shell attaches (set when a note opened it). */
+  pendingCommand?: string;
+}
+
+/** Local shape of the add/edit note form (tags edited as a comma string). */
+interface NoteForm {
+  name: string;
+  tags: string;
+  text: string;
+  command: string;
+  hostId: string | null;
 }
 
 /** Local shape of the "Add host" form (tags edited as a comma string). */
@@ -36,7 +50,12 @@ interface SecretPrompt {
 
 @Component({
   selector: "app-root",
-  imports: [FormsModule, TerminalComponent, DashboardComponent],
+  imports: [
+    FormsModule,
+    TerminalComponent,
+    DashboardComponent,
+    NotesManagerComponent,
+  ],
   templateUrl: "./app.component.html",
   styleUrl: "./app.component.css",
 })
@@ -44,8 +63,10 @@ export class AppComponent implements OnInit {
   private readonly hostsService = inject(HostsService);
   private readonly themeService = inject(ThemeService);
   private readonly ssh = inject(SshService);
+  private readonly notesService = inject(NotesService);
 
   readonly hosts = this.hostsService.hosts;
+  readonly notes = this.notesService.notes;
   readonly theme = this.themeService.theme;
 
   readonly view = signal<View>("terminals");
@@ -69,13 +90,27 @@ export class AppComponent implements OnInit {
   secretValue = "";
   private secretResolver: ((value: string | null) => void) | null = null;
 
+  // Note add/edit modal + "run on which host?" picker.
+  readonly showNoteForm = signal(false);
+  readonly editingNoteId = signal<string | null>(null);
+  noteForm: NoteForm = AppComponent.blankNoteForm();
+  readonly runHostPicker = signal<string | null>(null);
+
   async ngOnInit(): Promise<void> {
-    await this.loadHosts();
+    await Promise.all([this.loadHosts(), this.loadNotes()]);
   }
 
   async loadHosts(): Promise<void> {
     try {
       await this.hostsService.refresh();
+    } catch (e) {
+      this.error.set(String(e));
+    }
+  }
+
+  async loadNotes(): Promise<void> {
+    try {
+      await this.notesService.refresh();
     } catch (e) {
       this.error.set(String(e));
     }
@@ -96,26 +131,32 @@ export class AppComponent implements OnInit {
     return this.sessions().some((s) => s.host.id === host.id && !s.closed);
   }
 
-  async openHost(host: Host): Promise<void> {
+  async openHost(host: Host, runAfter?: string): Promise<void> {
     this.error.set("");
     this.connectingId.set(host.id);
+    this.view.set("terminals");
     try {
-      await this.connectWith(host, undefined);
+      await this.connectWith(host, undefined, undefined, runAfter);
     } finally {
       this.connectingId.set(null);
     }
   }
 
   /** Attempt a connection, prompting for a secret and retrying on the
-   * PASSWORD_REQUIRED / PASSPHRASE_REQUIRED sentinels (or a bad secret). */
+   * PASSWORD_REQUIRED / PASSPHRASE_REQUIRED sentinels (or a bad secret).
+   * `runAfter`, if set, is a command the new terminal runs once attached. */
   private async connectWith(
     host: Host,
     secret: string | undefined,
     modalError?: string,
+    runAfter?: string,
   ): Promise<void> {
     try {
       const id = await this.ssh.connect(host.id, secret);
-      this.sessions.update((list) => [...list, { id, host, closed: false }]);
+      this.sessions.update((list) => [
+        ...list,
+        { id, host, closed: false, pendingCommand: runAfter },
+      ]);
       this.activeId.set(id);
       // Now eligible for metrics polling on the dashboard.
       this.connectedHostIds.update((set) => new Set(set).add(host.id));
@@ -130,7 +171,7 @@ export class AppComponent implements OnInit {
           msg.includes("Incorrect") ? "Incorrect passphrase." : modalError,
         );
         if (pass !== null) {
-          await this.connectWith(host, pass);
+          await this.connectWith(host, pass, undefined, runAfter);
         }
       } else if (
         msg.includes("PASSWORD_REQUIRED") ||
@@ -144,7 +185,7 @@ export class AppComponent implements OnInit {
             : modalError,
         );
         if (pw !== null) {
-          await this.connectWith(host, pw);
+          await this.connectWith(host, pw, undefined, runAfter);
         }
       } else {
         this.error.set(msg);
@@ -264,11 +305,129 @@ export class AppComponent implements OnInit {
     }
   }
 
+  // --- Notes: add / edit / delete ---
+
+  /** Open the note modal in add mode, optionally pre-scoped to a host. */
+  openNoteForm(hostId: string | null = null): void {
+    this.noteForm = { ...AppComponent.blankNoteForm(), hostId };
+    this.editingNoteId.set(null);
+    this.showNoteForm.set(true);
+  }
+
+  openNoteEdit(note: Note): void {
+    this.noteForm = {
+      name: note.name,
+      tags: note.tags.join(", "),
+      text: note.text,
+      command: note.command,
+      hostId: note.host_id,
+    };
+    this.editingNoteId.set(note.id);
+    this.showNoteForm.set(true);
+  }
+
+  closeNoteForm(): void {
+    this.showNoteForm.set(false);
+  }
+
+  async saveNote(): Promise<void> {
+    this.error.set("");
+    const fields = {
+      name: this.noteForm.name.trim(),
+      tags: this.splitTags(this.noteForm.tags),
+      text: this.noteForm.text.trim(),
+      command: this.noteForm.command.replace(/\s+$/, ""),
+      host_id: this.noteForm.hostId,
+    };
+    try {
+      const editingId = this.editingNoteId();
+      if (editingId) {
+        await this.notesService.update({ id: editingId, ...fields });
+      } else {
+        await this.notesService.add(fields);
+      }
+      this.showNoteForm.set(false);
+    } catch (e) {
+      this.error.set(String(e));
+    }
+  }
+
+  async deleteNote(note: Note): Promise<void> {
+    this.error.set("");
+    try {
+      await this.notesService.remove(note.id);
+    } catch (e) {
+      this.error.set(String(e));
+    }
+  }
+
+  // --- Notes: run ---
+
+  /** Run a note's command. Host-scoped notes target that host's terminal
+   * (opening it if needed); global notes target the active terminal, or prompt
+   * for a host when none is open. */
+  async runNote(note: Note): Promise<void> {
+    const command = note.command;
+    if (!command.trim()) {
+      return;
+    }
+
+    if (note.host_id) {
+      const live = this.sessions().find(
+        (s) => s.host.id === note.host_id && !s.closed,
+      );
+      if (live) {
+        this.activeId.set(live.id);
+        this.view.set("terminals");
+        await this.ssh.writePty(live.id, this.withEnter(command));
+        return;
+      }
+      const host = this.hosts().find((h) => h.id === note.host_id);
+      if (host) {
+        await this.openHost(host, command);
+      } else {
+        this.error.set("The host for this note no longer exists.");
+      }
+      return;
+    }
+
+    // Global note.
+    const active = this.activeId();
+    const liveActive =
+      active != null && this.sessions().some((s) => s.id === active && !s.closed);
+    if (liveActive) {
+      this.view.set("terminals");
+      await this.ssh.writePty(active, this.withEnter(command));
+    } else {
+      this.runHostPicker.set(command); // ask which host to run on
+    }
+  }
+
+  chooseRunHost(host: Host): void {
+    const command = this.runHostPicker();
+    this.runHostPicker.set(null);
+    if (command != null) {
+      void this.openHost(host, command);
+    }
+  }
+
+  cancelRunHost(): void {
+    this.runHostPicker.set(null);
+  }
+
+  private withEnter(command: string): string {
+    return command.endsWith("\n") ? command : command + "\n";
+  }
+
   private splitTags(raw: string): string[] {
     return raw
       .split(",")
       .map((t) => t.trim())
       .filter((t) => t.length > 0);
+  }
+
+  private static blankNoteForm(): NoteForm {
+    return { name: "", tags: "", text: "", command: "", hostId: null };
   }
 
   private static blankForm(): HostForm {

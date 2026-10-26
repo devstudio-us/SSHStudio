@@ -43,6 +43,9 @@ export class TerminalComponent implements AfterViewInit, OnDestroy {
   readonly sessionId = input.required<string>();
   /** Whether this terminal's tab is currently shown. */
   readonly active = input<boolean>(false);
+  /** A command to run once, right after the shell attaches (used when a note
+   * opens a fresh terminal). Empty = nothing to run. */
+  readonly pendingCommand = input<string>("");
   /** Emitted when the remote shell exits. */
   readonly closed = output<void>();
 
@@ -105,6 +108,12 @@ export class TerminalComponent implements AfterViewInit, OnDestroy {
     this.resizeObserver = new ResizeObserver(() => this.doFit());
     this.resizeObserver.observe(this.hostRef().nativeElement);
     term.focus();
+
+    // If this terminal was opened to run a note, send it now.
+    const pending = this.pendingCommand();
+    if (pending.trim().length > 0) {
+      void this.ssh.writePty(id, pending.endsWith("\n") ? pending : pending + "\n");
+    }
   }
 
   /** Fit the terminal to the container and push the new size to the PTY. */
