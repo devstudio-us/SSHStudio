@@ -85,7 +85,10 @@ pub fn start_metrics(
 
     let (stop_tx, stop_rx) = mpsc::channel::<()>(1);
     pollers.insert(host_id.clone(), stop_tx);
-    tokio::spawn(run_poller(app.clone(), host, secret, stop_rx));
+    // This command is sync, so it runs outside Tokio's context; spawn via
+    // Tauri's managed runtime rather than `tokio::spawn` (which would panic
+    // with "no reactor running").
+    tauri::async_runtime::spawn(run_poller(app.clone(), host, secret, stop_rx));
     Ok(())
 }
 

@@ -347,7 +347,9 @@ pub async fn attach(
         .insert(session_id.clone(), SessionState::Running(tx));
 
     let sessions = state.sessions.clone();
-    tokio::spawn(run_session(
+    // Use Tauri's managed runtime so this works regardless of the calling
+    // command's context (and stays consistent with the metrics poller).
+    tauri::async_runtime::spawn(run_session(
         app.clone(),
         session_id,
         handle,
