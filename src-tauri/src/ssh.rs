@@ -14,7 +14,7 @@ use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 
 use russh::client;
-use russh::keys::ssh_key::{HashAlg, PublicKey};
+use russh::keys::ssh_key::{Algorithm, HashAlg, PublicKey};
 use russh::keys::{PrivateKeyWithHashAlg, load_secret_key};
 use russh::{ChannelMsg, Disconnect};
 use serde::{Deserialize, Serialize};
@@ -207,9 +207,26 @@ pub async fn connect(
     let authed = match host.identity_file.as_deref().filter(|s| !s.is_empty()) {
         Some(identity) => {
             let path = resolve_identity_path(&app, identity);
-            let key = load_secret_key(&path, password.as_deref())
-                .map_err(|e| classify_key_error(&e, password.is_some()))?;
-            let key = PrivateKeyWithHashAlg::new(Arc::new(key), None);
+            let key = Arc::new(
+                load_secret_key(&path, password.as_deref())
+                    .map_err(|e| classify_key_error(&e, password.is_some()))?,
+            );
+
+            // RSA keys must be offered with an rsa-sha2-256/512 signature;
+            // modern OpenSSH rejects the legacy ssh-rsa (SHA-1) algorithm. Ask
+            // the server which hash it supports and sign with that. ed25519,
+            // ecdsa, etc. ignore the hash, so pass None for them.
+            let hash_alg = if matches!(key.algorithm(), Algorithm::Rsa { .. }) {
+                session
+                    .best_supported_rsa_hash()
+                    .await
+                    .map_err(|e| format!("Authentication error: {e}"))?
+                    .flatten()
+            } else {
+                None
+            };
+
+            let key = PrivateKeyWithHashAlg::new(key, hash_alg);
             session
                 .authenticate_publickey(&host.user, key)
                 .await
