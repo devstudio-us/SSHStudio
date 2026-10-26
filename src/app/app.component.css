@@ -1,0 +1,176 @@
+.layout {
+  display: flex;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.sidebar {
+  width: 280px;
+  flex-shrink: 0;
+  border-right: 1px solid rgba(128, 128, 128, 0.3);
+  padding: 1rem;
+  overflow-y: auto;
+}
+
+.content {
+  flex: 1;
+  padding: 1rem 1.5rem;
+  overflow-y: auto;
+  max-width: 540px;
+}
+
+h2 {
+  margin-top: 0;
+  font-size: 1.1rem;
+}
+
+.empty {
+  opacity: 0.6;
+  font-size: 0.9rem;
+}
+
+.host-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.host-item {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.6rem 0.7rem;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.host-item:hover {
+  background-color: rgba(128, 128, 128, 0.12);
+}
+
+.host-item.selected {
+  background-color: rgba(57, 108, 216, 0.18);
+}
+
+.host-main {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.host-name {
+  font-weight: 600;
+}
+
+.host-addr {
+  font-size: 0.8rem;
+  opacity: 0.7;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.host-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  margin-top: 0.2rem;
+}
+
+.tag {
+  font-size: 0.7rem;
+  padding: 0.05rem 0.4rem;
+  border-radius: 999px;
+  background-color: rgba(128, 128, 128, 0.25);
+}
+
+.delete {
+  border: none;
+  background: transparent;
+  font-size: 1.2rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 0.3rem;
+  opacity: 0.5;
+  box-shadow: none;
+}
+
+.delete:hover {
+  opacity: 1;
+  color: #e32727;
+}
+
+.host-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.host-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+.host-form input,
+.host-form textarea {
+  font-size: 0.95rem;
+  padding: 0.45rem 0.6rem;
+}
+
+.row {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.row .grow {
+  flex: 1;
+}
+
+.row .port {
+  width: 90px;
+}
+
+.host-form button[type="submit"] {
+  align-self: flex-start;
+}
+
+.host-form button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.error {
+  color: #e32727;
+  font-size: 0.85rem;
+}
+
+.details {
+  margin-top: 1.5rem;
+  border-top: 1px solid rgba(128, 128, 128, 0.3);
+  padding-top: 1rem;
+}
+
+.details dl {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.3rem 1rem;
+  font-size: 0.9rem;
+}
+
+.details dt {
+  font-weight: 600;
+  opacity: 0.7;
+}
+
+.details dd {
+  margin: 0;
+}
+
+.details .notes {
+  white-space: pre-wrap;
+}
