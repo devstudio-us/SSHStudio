@@ -35,21 +35,27 @@
     <div class="sidebar-head">
       <h2>Hosts</h2>
       <span class="count">{{ hosts().length }}</span>
+      <button class="icon-btn add" type="button" (click)="openAddForm()" title="Add host" aria-label="Add host">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 5v14M5 12h14" />
+        </svg>
+      </button>
     </div>
 
     @if (hosts().length === 0) {
-      <p class="empty">No hosts yet.<br />Add one on the right.</p>
+      <p class="empty">No hosts yet.<br />Click + to add one.</p>
     }
 
     <ul class="host-list">
       @for (host of hosts(); track host.id) {
-        <li
-          class="host-item"
-          [class.selected]="selected()?.id === host.id"
-          (click)="select(host)"
-        >
+        <li class="host-item" (click)="openHost(host)" title="Connect">
           <div class="host-main">
-            <span class="host-name">{{ host.name || host.hostname }}</span>
+            <span class="host-name">
+              @if (hasLiveSession(host)) {
+                <span class="dot" title="Connected"></span>
+              }
+              {{ host.name || host.hostname }}
+            </span>
             <span class="host-addr">{{ host.user ? host.user + "@" : "" }}{{ host.hostname }}:{{ host.port }}</span>
             @if (host.tags.length > 0) {
               <span class="host-tags">
@@ -59,25 +65,70 @@
               </span>
             }
           </div>
-          <button class="icon-btn danger" type="button" (click)="deleteHost(host, $event)" title="Delete host" aria-label="Delete host">
-            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2m2 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" />
-              <path d="M10 11v6M14 11v6" />
-            </svg>
-          </button>
+          @if (connectingId() === host.id) {
+            <span class="spinner" aria-label="Connecting"></span>
+          } @else {
+            <button class="icon-btn danger" type="button" (click)="deleteHost(host, $event)" title="Delete host" aria-label="Delete host">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2m2 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" />
+                <path d="M10 11v6M14 11v6" />
+              </svg>
+            </button>
+          }
         </li>
       }
     </ul>
   </aside>
 
   <main class="content">
-    <section class="card">
+    @if (error()) {
+      <div class="banner error">
+        <span>{{ error() }}</span>
+        <button class="icon-btn" type="button" (click)="error.set('')" aria-label="Dismiss">×</button>
+      </div>
+    }
+
+    @if (sessions().length === 0) {
+      <div class="welcome">
+        <h2>No open sessions</h2>
+        <p>Click a host in the sidebar to open a terminal.</p>
+        <button class="primary" type="button" (click)="openAddForm()">Add a host</button>
+      </div>
+    } @else {
+      <div class="tabs">
+        @for (session of sessions(); track session.id) {
+          <div
+            class="tab"
+            [class.active]="activeId() === session.id"
+            [class.closed]="session.closed"
+            (click)="setActive(session.id)"
+          >
+            <span class="tab-label">{{ session.host.name || session.host.hostname }}</span>
+            <button class="tab-close" type="button" (click)="closeSession(session.id, $event)" aria-label="Close session">×</button>
+          </div>
+        }
+      </div>
+
+      <div class="terminals">
+        @for (session of sessions(); track session.id) {
+          <div class="terminal-slot" [style.display]="activeId() === session.id ? 'block' : 'none'">
+            <app-terminal
+              [sessionId]="session.id"
+              [active]="activeId() === session.id"
+              (closed)="markClosed(session.id)"
+            />
+          </div>
+        }
+      </div>
+    }
+  </main>
+</div>
+
+<!-- Add host modal -->
+@if (showAddForm()) {
+  <div class="modal-overlay" (click)="closeAddForm()">
+    <div class="modal" (click)="$event.stopPropagation()">
       <h2>Add host</h2>
-
-      @if (error()) {
-        <p class="error">{{ error() }}</p>
-      }
-
       <form class="host-form" (submit)="$event.preventDefault(); addHost()">
         <label>
           Name
@@ -109,30 +160,37 @@
           Notes
           <textarea name="notes" rows="3" [(ngModel)]="form.notes"></textarea>
         </label>
-        <button class="primary" type="submit" [disabled]="!form.hostname.trim()">Add host</button>
+        <div class="modal-actions">
+          <button type="button" class="ghost" (click)="closeAddForm()">Cancel</button>
+          <button class="primary" type="submit" [disabled]="!form.hostname.trim()">Add host</button>
+        </div>
       </form>
-    </section>
+    </div>
+  </div>
+}
 
-    @if (selected(); as host) {
-      <section class="card details">
-        <h3>{{ host.name || host.hostname }}</h3>
-        <dl>
-          <dt>Address</dt>
-          <dd>{{ host.user ? host.user + "@" : "" }}{{ host.hostname }}:{{ host.port }}</dd>
-          @if (host.identity_file) {
-            <dt>Identity file</dt>
-            <dd>{{ host.identity_file }}</dd>
-          }
-          @if (host.tags.length > 0) {
-            <dt>Tags</dt>
-            <dd>{{ host.tags.join(", ") }}</dd>
-          }
-          @if (host.notes) {
-            <dt>Notes</dt>
-            <dd class="notes">{{ host.notes }}</dd>
-          }
-        </dl>
-      </section>
-    }
-  </main>
-</div>
+<!-- Secret (password / passphrase) modal -->
+@if (secretPrompt(); as prompt) {
+  <div class="modal-overlay" (click)="cancelSecret()">
+    <div class="modal narrow" (click)="$event.stopPropagation()">
+      <h2>{{ prompt.title }}</h2>
+      @if (prompt.error) {
+        <p class="error">{{ prompt.error }}</p>
+      }
+      <form (submit)="$event.preventDefault(); submitSecret()">
+        <input
+          type="password"
+          autocomplete="off"
+          [(ngModel)]="secretValue"
+          name="secret"
+          placeholder="••••••••"
+          autofocus
+        />
+        <div class="modal-actions">
+          <button type="button" class="ghost" (click)="cancelSecret()">Cancel</button>
+          <button class="primary" type="submit">Connect</button>
+        </div>
+      </form>
+    </div>
+  </div>
+}

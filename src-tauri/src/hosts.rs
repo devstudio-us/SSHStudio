@@ -56,6 +56,12 @@ fn hosts_path(app: &AppHandle) -> Result<PathBuf, String> {
     Ok(dir.join("hosts.toml"))
 }
 
+/// Look up a single host by id. Used by the SSH layer to resolve a connection
+/// target. Returns `Ok(None)` when no host has that id.
+pub fn get_host(app: &AppHandle, id: &str) -> Result<Option<Host>, String> {
+    Ok(load(app)?.into_iter().find(|h| h.id == id))
+}
+
 /// Load all hosts. A missing file is treated as an empty list (first run).
 fn load(app: &AppHandle) -> Result<Vec<Host>, String> {
     let path = hosts_path(app)?;
