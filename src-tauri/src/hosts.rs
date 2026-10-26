@@ -3,6 +3,8 @@
 //! serialization and file I/O; no SSH or product logic lives here.
 
 use std::fs;
+use std::fs::File;
+use std::io::Write;
 use std::path::PathBuf;
 
 use serde::{Deserialize, Serialize};
@@ -66,14 +68,39 @@ fn load(app: &AppHandle) -> Result<Vec<Host>, String> {
     Ok(parsed.hosts)
 }
 
-/// Persist the full list, overwriting the file atomically-enough for a config file.
+/// Persist the full list atomically: write to a temp file in the same
+/// directory, flush it to disk, back up the previous version, then rename the
+/// temp over the target. A crash can therefore never leave a half-written
+/// hosts.toml — either the old file or the complete new one is in place.
 fn save(app: &AppHandle, hosts: &[Host]) -> Result<(), String> {
     let path = hosts_path(app)?;
     let file = HostsFile {
         hosts: hosts.to_vec(),
     };
     let text = toml::to_string_pretty(&file).map_err(|e| format!("could not serialize: {e}"))?;
-    fs::write(&path, text).map_err(|e| format!("could not write {path:?}: {e}"))
+
+    // Write the new content to a sibling temp file. Keeping it in the same
+    // directory guarantees the later rename stays on one filesystem, which is
+    // what makes that rename atomic.
+    let tmp = path.with_extension("toml.tmp");
+    {
+        let mut f = File::create(&tmp).map_err(|e| format!("could not create {tmp:?}: {e}"))?;
+        f.write_all(text.as_bytes())
+            .map_err(|e| format!("could not write {tmp:?}: {e}"))?;
+        // Flush OS buffers to disk before the rename so the renamed file is
+        // guaranteed to hold the full contents.
+        f.sync_all()
+            .map_err(|e| format!("could not flush {tmp:?}: {e}"))?;
+    }
+
+    // Preserve the previous version as hosts.toml.bak before replacing it.
+    if path.exists() {
+        let bak = path.with_extension("toml.bak");
+        fs::copy(&path, &bak).map_err(|e| format!("could not back up to {bak:?}: {e}"))?;
+    }
+
+    // Atomic replace: on both Windows and Unix this swaps the target in place.
+    fs::rename(&tmp, &path).map_err(|e| format!("could not replace {path:?}: {e}"))
 }
 
 #[tauri::command]
