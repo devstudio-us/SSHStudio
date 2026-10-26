@@ -1,6 +1,7 @@
 import { Component, inject, OnInit, signal } from "@angular/core";
 import { FormsModule } from "@angular/forms";
 import { HostsService } from "./hosts.service";
+import { ThemeService } from "./theme.service";
 import { Host } from "./host.model";
 
 /** Local shape of the "Add host" form. Kept separate from `Host` because tags
@@ -23,10 +24,16 @@ interface HostForm {
 })
 export class AppComponent implements OnInit {
   private readonly hostsService = inject(HostsService);
+  private readonly themeService = inject(ThemeService);
 
   readonly hosts = this.hostsService.hosts;
+  readonly theme = this.themeService.theme;
   readonly selected = signal<Host | null>(null);
   readonly error = signal<string>("");
+
+  toggleTheme(): void {
+    this.themeService.toggle();
+  }
 
   form: HostForm = AppComponent.blankForm();
 

@@ -1,38 +1,127 @@
-.layout {
+:host {
   display: flex;
+  flex-direction: column;
   height: 100vh;
   overflow: hidden;
 }
 
-.sidebar {
-  width: 280px;
+/* ---- Top bar ---- */
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 52px;
   flex-shrink: 0;
-  border-right: 1px solid rgba(128, 128, 128, 0.3);
-  padding: 1rem;
+  padding: 0 1rem;
+  background-color: var(--surface);
+  border-bottom: 1px solid var(--border);
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-weight: 600;
+}
+
+.brand-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  background-color: var(--accent-soft);
+  color: var(--accent);
+}
+
+.brand-name {
+  font-size: 1rem;
+  letter-spacing: 0.01em;
+}
+
+.theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  background-color: var(--surface-2);
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+}
+
+.theme-toggle:hover {
+  background-color: var(--surface-hover);
+  color: var(--text);
+}
+
+/* ---- Layout ---- */
+.layout {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+
+.sidebar {
+  width: 290px;
+  flex-shrink: 0;
+  background-color: var(--surface);
+  border-right: 1px solid var(--border);
+  padding: 1rem 0.75rem;
   overflow-y: auto;
+}
+
+.sidebar-head {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0 0.35rem 0.5rem;
+}
+
+.sidebar-head h2 {
+  margin: 0;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+}
+
+.count {
+  font-size: 0.72rem;
+  min-width: 1.3rem;
+  text-align: center;
+  padding: 0.05rem 0.4rem;
+  border-radius: 999px;
+  background-color: var(--surface-2);
+  color: var(--text-muted);
 }
 
 .content {
   flex: 1;
-  padding: 1rem 1.5rem;
+  padding: 1.5rem;
   overflow-y: auto;
-  max-width: 540px;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  align-items: flex-start;
 }
 
-h2 {
-  margin-top: 0;
-  font-size: 1.1rem;
-}
-
+/* ---- Host list ---- */
 .empty {
-  opacity: 0.6;
-  font-size: 0.9rem;
+  color: var(--text-faint);
+  font-size: 0.88rem;
+  text-align: center;
+  padding: 1.5rem 0.5rem;
 }
 
 .host-list {
   list-style: none;
   margin: 0;
   padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
 }
 
 .host-item {
@@ -40,17 +129,20 @@ h2 {
   align-items: flex-start;
   justify-content: space-between;
   gap: 0.5rem;
-  padding: 0.6rem 0.7rem;
-  border-radius: 8px;
+  padding: 0.55rem 0.6rem;
+  border-radius: var(--radius-sm);
   cursor: pointer;
+  border: 1px solid transparent;
+  transition: background-color 0.12s ease, border-color 0.12s ease;
 }
 
 .host-item:hover {
-  background-color: rgba(128, 128, 128, 0.12);
+  background-color: var(--surface-hover);
 }
 
 .host-item.selected {
-  background-color: rgba(57, 108, 216, 0.18);
+  background-color: var(--accent-soft);
+  border-color: color-mix(in srgb, var(--accent) 35%, transparent);
 }
 
 .host-main {
@@ -62,11 +154,12 @@ h2 {
 
 .host-name {
   font-weight: 600;
+  font-size: 0.92rem;
 }
 
 .host-addr {
-  font-size: 0.8rem;
-  opacity: 0.7;
+  font-size: 0.78rem;
+  color: var(--text-muted);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -76,55 +169,98 @@ h2 {
   display: flex;
   flex-wrap: wrap;
   gap: 0.25rem;
-  margin-top: 0.2rem;
+  margin-top: 0.25rem;
 }
 
 .tag {
-  font-size: 0.7rem;
-  padding: 0.05rem 0.4rem;
+  font-size: 0.68rem;
+  padding: 0.05rem 0.45rem;
   border-radius: 999px;
-  background-color: rgba(128, 128, 128, 0.25);
+  background-color: var(--surface-2);
+  color: var(--text-muted);
 }
 
-.delete {
-  border: none;
+/* ---- Buttons ---- */
+.icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
   background: transparent;
-  font-size: 1.2rem;
-  line-height: 1;
-  cursor: pointer;
-  padding: 0 0.3rem;
-  opacity: 0.5;
-  box-shadow: none;
+  border: none;
+  color: var(--text-faint);
+  opacity: 0;
+  transition: opacity 0.12s ease, color 0.12s ease, background-color 0.12s ease;
 }
 
-.delete:hover {
+.host-item:hover .icon-btn {
   opacity: 1;
-  color: #e32727;
+}
+
+.icon-btn.danger:hover {
+  color: var(--danger);
+  background-color: var(--danger-soft);
+}
+
+button.primary {
+  align-self: flex-start;
+  padding: 0.55rem 1.1rem;
+  font-weight: 600;
+  background-color: var(--accent);
+  color: var(--accent-contrast);
+}
+
+button.primary:hover:not(:disabled) {
+  background-color: var(--accent-hover);
+}
+
+button.primary:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* ---- Cards & forms ---- */
+.card {
+  width: 100%;
+  max-width: 520px;
+  background-color: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 1.25rem 1.35rem;
+}
+
+.card h2,
+.card h3 {
+  margin: 0 0 1rem;
+  font-size: 1rem;
 }
 
 .host-form {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: 0.85rem;
 }
 
 .host-form label {
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
-  font-size: 0.85rem;
+  gap: 0.3rem;
+  font-size: 0.82rem;
   font-weight: 500;
+  color: var(--text-muted);
 }
 
-.host-form input,
-.host-form textarea {
-  font-size: 0.95rem;
-  padding: 0.45rem 0.6rem;
+.hint {
+  font-weight: 400;
+  color: var(--text-faint);
 }
 
 .row {
   display: flex;
-  gap: 0.75rem;
+  gap: 0.85rem;
 }
 
 .row .grow {
@@ -132,43 +268,35 @@ h2 {
 }
 
 .row .port {
-  width: 90px;
-}
-
-.host-form button[type="submit"] {
-  align-self: flex-start;
-}
-
-.host-form button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
+  width: 96px;
 }
 
 .error {
-  color: #e32727;
+  margin: 0 0 1rem;
+  padding: 0.55rem 0.75rem;
+  border-radius: var(--radius-sm);
+  background-color: var(--danger-soft);
+  color: var(--danger);
   font-size: 0.85rem;
 }
 
-.details {
-  margin-top: 1.5rem;
-  border-top: 1px solid rgba(128, 128, 128, 0.3);
-  padding-top: 1rem;
-}
-
+/* ---- Details ---- */
 .details dl {
   display: grid;
   grid-template-columns: auto 1fr;
-  gap: 0.3rem 1rem;
+  gap: 0.45rem 1.25rem;
+  margin: 0;
   font-size: 0.9rem;
 }
 
 .details dt {
   font-weight: 600;
-  opacity: 0.7;
+  color: var(--text-muted);
 }
 
 .details dd {
   margin: 0;
+  word-break: break-word;
 }
 
 .details .notes {
