@@ -1,4 +1,5 @@
 import { Component, computed, input, output, signal } from "@angular/core";
+import { SelectComponent, SelectOption } from "./select.component";
 import { Note } from "./note.model";
 import { Host } from "./host.model";
 
@@ -10,6 +11,7 @@ import { Host } from "./host.model";
  */
 @Component({
   selector: "app-notes-manager",
+  imports: [SelectComponent],
   template: `
     <div class="head">
       <h2>Notes</h2>
@@ -24,13 +26,12 @@ import { Host } from "./host.model";
         [value]="query()"
         (input)="query.set(value($event))"
       />
-      <select [value]="scopeFilter()" (change)="scopeFilter.set(value($event))">
-        <option value="all">All scopes</option>
-        <option value="global">Global</option>
-        @for (host of hosts(); track host.id) {
-          <option [value]="host.id">{{ host.name || host.hostname }}</option>
-        }
-      </select>
+      <app-select
+        class="scope-select"
+        [options]="scopeOptions()"
+        [value]="scopeFilter()"
+        (valueChange)="scopeFilter.set($event ?? 'all')"
+      />
     </div>
 
     @if (filtered().length === 0) {
@@ -131,8 +132,8 @@ import { Host } from "./host.model";
       .search {
         flex: 1;
       }
-      .filters select {
-        min-width: 150px;
+      .filters .scope-select {
+        min-width: 160px;
       }
       /* Masonry: cards pack top-to-bottom per column, no row-alignment gaps. */
       .note-list {
@@ -292,6 +293,12 @@ export class NotesManagerComponent {
   readonly query = signal("");
   readonly scopeFilter = signal("all");
   readonly copiedId = signal<string | null>(null);
+
+  readonly scopeOptions = computed<SelectOption[]>(() => [
+    { value: "all", label: "All scopes" },
+    { value: "global", label: "Global" },
+    ...this.hosts().map((h) => ({ value: h.id, label: h.name || h.hostname })),
+  ]);
 
   readonly filtered = computed(() => {
     const q = this.query().trim().toLowerCase();

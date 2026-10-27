@@ -297,12 +297,11 @@
         </label>
         <label>
           Scope
-          <select name="note-scope" [(ngModel)]="noteForm.hostId">
-            <option [ngValue]="null">Global</option>
-            @for (host of hosts(); track host.id) {
-              <option [ngValue]="host.id">{{ host.name || host.hostname }}</option>
-            }
-          </select>
+          <app-select
+            [options]="noteScopeOptions()"
+            [value]="noteForm.hostId"
+            (valueChange)="noteForm.hostId = $event"
+          />
         </label>
         <label>
           Command <span class="hint">(runnable)</span>
