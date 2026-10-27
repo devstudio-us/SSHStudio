@@ -1,4 +1,12 @@
-import { Component, computed, input, output, signal } from "@angular/core";
+import {
+  Component,
+  ElementRef,
+  computed,
+  input,
+  output,
+  signal,
+  viewChild,
+} from "@angular/core";
 import { MetricsCardComponent } from "./metrics-card.component";
 import { Host } from "./host.model";
 
@@ -16,20 +24,28 @@ import { Host } from "./host.model";
       </div>
 
       <div class="dash-controls">
-        <span class="live" title="Metrics refresh automatically every 5 seconds">
-          <span class="live-dot"></span> Live · 5s
-        </span>
-        <div class="dash-search">
-          <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" />
-          </svg>
-          <input
-            type="search"
-            placeholder="Search servers…"
-            [value]="query()"
-            (input)="query.set(value($event))"
-          />
-        </div>
+        @if (searchOpen()) {
+          <div class="dash-search">
+            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" />
+            </svg>
+            <input
+              #searchRef
+              type="search"
+              placeholder="Search servers…"
+              [value]="query()"
+              (input)="query.set(value($event))"
+              (blur)="onSearchBlur()"
+              (keydown.escape)="collapseSearch()"
+            />
+          </div>
+        } @else {
+          <button class="ctrl-icon" type="button" (click)="openSearch()" title="Search servers" aria-label="Search servers">
+            <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" />
+            </svg>
+          </button>
+        }
         <button class="primary add-host" type="button" (click)="addHost.emit()">
           <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14" /></svg>
           Add host
@@ -78,7 +94,7 @@ import { Host } from "./host.model";
       }
       .dash-head {
         display: flex;
-        align-items: flex-end;
+        align-items: flex-start;
         justify-content: space-between;
         gap: 1rem;
         flex-wrap: wrap;
@@ -99,32 +115,21 @@ import { Host } from "./host.model";
         gap: 0.6rem;
         flex-wrap: wrap;
       }
-      .live {
+      .ctrl-icon {
         display: inline-flex;
         align-items: center;
-        gap: 0.4rem;
-        font-size: 0.78rem;
-        font-weight: 500;
-        color: var(--text-muted);
-        padding: 0.3rem 0.6rem;
+        justify-content: center;
+        width: 38px;
+        height: 38px;
+        border-radius: var(--radius-sm);
         background-color: var(--surface-2);
-        border-radius: 999px;
+        border: 1px solid var(--border);
+        color: var(--text-muted);
       }
-      .live-dot {
-        width: 7px;
-        height: 7px;
-        border-radius: 50%;
-        background-color: #22c55e;
-        box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.5);
-        animation: pulse 2s infinite;
-      }
-      @keyframes pulse {
-        0% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.5); }
-        70% { box-shadow: 0 0 0 6px rgba(34, 197, 94, 0); }
-        100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
-      }
-      @media (prefers-reduced-motion: reduce) {
-        .live-dot { animation: none; }
+      .ctrl-icon:hover {
+        background-color: var(--accent-soft);
+        border-color: transparent;
+        color: var(--accent);
       }
       .dash-search {
         position: relative;
@@ -179,6 +184,26 @@ export class DashboardComponent {
   readonly remove = output<Host>();
 
   readonly query = signal("");
+  readonly searchOpen = signal(false);
+  private readonly searchRef =
+    viewChild<ElementRef<HTMLInputElement>>("searchRef");
+
+  openSearch(): void {
+    this.searchOpen.set(true);
+    setTimeout(() => this.searchRef()?.nativeElement.focus(), 0);
+  }
+
+  collapseSearch(): void {
+    this.query.set("");
+    this.searchOpen.set(false);
+  }
+
+  /** Collapse back to the icon when the field is left empty. */
+  onSearchBlur(): void {
+    if (!this.query().trim()) {
+      this.searchOpen.set(false);
+    }
+  }
 
   readonly filtered = computed(() => {
     const q = this.query().trim().toLowerCase();
