@@ -30,11 +30,12 @@ import { ThemeService, Theme } from "./theme.service";
         width: 100%;
         height: 100%;
       }
+      /* No padding here: FitAddon measures this element, and padding on the
+       * element xterm opens into makes it overcount rows and clip the last
+       * line. Insets live on the .terminal-slot wrapper instead. */
       .xterm-host {
         width: 100%;
         height: 100%;
-        padding: 6px 8px;
-        box-sizing: border-box;
       }
     `,
   ],

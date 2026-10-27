@@ -417,6 +417,9 @@ button.ghost:hover {
 .terminal-slot {
   position: absolute;
   inset: 0;
+  /* Insets live here, not on the element xterm opens into, so FitAddon
+   * measures a clean box and the last terminal row isn't clipped. */
+  padding: 6px 8px;
 }
 
 /* ---- Forms (modal) ---- */
