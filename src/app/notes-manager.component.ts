@@ -56,6 +56,11 @@ import { Host } from "./host.model";
       @for (note of filtered(); track note.id) {
         <li class="note">
           <div class="note-top">
+            @if (note.command) {
+              <span class="run-ico" title="Runnable">
+                <svg viewBox="0 0 24 24" width="11" height="11" fill="currentColor"><polygon points="6 4 20 12 6 20 6 4" /></svg>
+              </span>
+            }
             <span class="note-name">{{ note.name || note.command || note.text || "(untitled)" }}</span>
             <span class="scope-badge" [class.global]="!note.host_id">{{ scopeLabel(note) }}</span>
           </div>
@@ -76,11 +81,24 @@ import { Host } from "./host.model";
 
           <div class="actions">
             @if (note.command) {
-              <button class="run" type="button" (click)="run.emit(note)" title="Run in terminal">▶ Run</button>
-              <button type="button" (click)="copy(note)">{{ copiedId() === note.id ? "Copied" : "Copy" }}</button>
+              <button class="run" type="button" (click)="run.emit(note)" title="Run in terminal">
+                <svg viewBox="0 0 24 24" width="11" height="11" fill="currentColor"><polygon points="6 4 20 12 6 20 6 4" /></svg>
+                Run
+              </button>
+              <button class="icon-act" type="button" (click)="copy(note)" [title]="copiedId() === note.id ? 'Copied' : 'Copy command'" aria-label="Copy">
+                @if (copiedId() === note.id) {
+                  <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5" /></svg>
+                } @else {
+                  <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="12" height="12" rx="2" /><path d="M5 15V5a2 2 0 0 1 2-2h8" /></svg>
+                }
+              </button>
             }
-            <button type="button" (click)="edit.emit(note)">Edit</button>
-            <button class="danger" type="button" (click)="remove.emit(note)">Delete</button>
+            <button class="icon-act" type="button" (click)="edit.emit(note)" title="Edit" aria-label="Edit">
+              <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9" /><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" /></svg>
+            </button>
+            <button class="icon-act del" type="button" (click)="remove.emit(note)" title="Delete" aria-label="Delete">
+              <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2m2 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" /><path d="M10 11v6M14 11v6" /></svg>
+            </button>
           </div>
         </li>
       }
@@ -116,16 +134,17 @@ import { Host } from "./host.model";
       .filters select {
         min-width: 150px;
       }
+      /* Masonry: cards pack top-to-bottom per column, no row-alignment gaps. */
       .note-list {
         list-style: none;
         margin: 0;
         padding: 0;
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(330px, 1fr));
-        gap: 0.85rem;
-        align-items: start;
+        columns: 320px;
+        column-gap: 0.85rem;
       }
       .note {
+        break-inside: avoid;
+        margin: 0 0 0.85rem;
         background-color: var(--surface);
         border: 1px solid var(--border);
         border-radius: var(--radius);
@@ -134,11 +153,29 @@ import { Host } from "./host.model";
         display: flex;
         flex-direction: column;
         gap: 0.5rem;
+        transition: box-shadow 0.16s ease, border-color 0.16s ease,
+          transform 0.12s ease;
+      }
+      .note:hover {
+        border-color: color-mix(in srgb, var(--accent) 40%, var(--border));
+        box-shadow: 0 10px 26px -10px var(--accent-glow);
+        transform: translateY(-2px);
       }
       .note-top {
         display: flex;
         align-items: center;
-        gap: 0.6rem;
+        gap: 0.5rem;
+      }
+      .run-ico {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 20px;
+        height: 20px;
+        border-radius: 6px;
+        flex-shrink: 0;
+        background-color: var(--accent-soft);
+        color: var(--accent);
       }
       .note-name {
         font-weight: 600;
@@ -161,12 +198,14 @@ import { Host } from "./host.model";
       }
       .cmd {
         margin: 0;
-        padding: 0.5rem 0.65rem;
-        background-color: var(--bg);
+        padding: 0.5rem 0.65rem 0.5rem 0.6rem;
+        background-color: color-mix(in srgb, var(--accent-soft) 55%, var(--bg));
         border: 1px solid var(--border);
+        border-left: 3px solid var(--accent);
         border-radius: var(--radius-sm);
         font-family: ui-monospace, Menlo, Consolas, monospace;
         font-size: 0.82rem;
+        line-height: 1.5;
         white-space: pre-wrap;
         word-break: break-word;
         color: var(--text);
@@ -191,31 +230,43 @@ import { Host } from "./host.model";
       }
       .actions {
         display: flex;
-        gap: 0.4rem;
-        margin-top: 0.1rem;
+        align-items: center;
+        gap: 0.35rem;
+        margin-top: 0.15rem;
       }
-      .actions button {
-        padding: 0.35rem 0.7rem;
+      .actions .run {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        padding: 0.38rem 0.75rem;
         font-size: 0.8rem;
-        background-color: var(--surface-2);
-        border: 1px solid var(--border);
-        color: var(--text);
-      }
-      .actions button:hover {
-        background-color: var(--surface-hover);
-      }
-      .actions button.run {
-        background-color: var(--accent);
-        border-color: transparent;
-        color: var(--accent-contrast);
         font-weight: 600;
+        background-color: var(--accent);
+        border: 1px solid transparent;
+        color: var(--accent-contrast);
+        box-shadow: 0 6px 14px -7px var(--accent-glow);
       }
-      .actions button.run:hover {
+      .actions .run:hover {
         background-color: var(--accent-hover);
       }
-      .actions button.danger:hover {
+      .icon-act {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 30px;
+        height: 30px;
+        border-radius: var(--radius-sm);
+        border: 1px solid transparent;
+        background: transparent;
+        color: var(--text-faint);
+      }
+      .icon-act:hover {
+        background-color: var(--surface-hover);
+        color: var(--text);
+      }
+      .icon-act.del:hover {
+        background-color: var(--danger-soft);
         color: var(--danger);
-        border-color: var(--danger);
       }
       .primary {
         padding: 0.5rem 1rem;
