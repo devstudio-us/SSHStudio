@@ -5,23 +5,24 @@
 
 :root {
   /* Light theme */
-  --bg: #f3f4f6;
+  --bg: #f4f5f8;
   --surface: #ffffff;
-  --surface-2: #eef0f3;
-  --surface-hover: #e8ebef;
-  --border: #e2e5ea;
-  --border-strong: #d2d7df;
-  --text: #171a1f;
-  --text-muted: #626b78;
-  --text-faint: #929aa6;
-  --accent: #4f46e5;
-  --accent-hover: #4338ca;
+  --surface-2: #eff1f5;
+  --surface-hover: #e9ecf1;
+  --border: #e7e9ef;
+  --border-strong: #d6dae2;
+  --text: #191c23;
+  --text-muted: #5d6675;
+  --text-faint: #9aa2b0;
+  --accent: #5b57e8;
+  --accent-hover: #4d49dd;
   --accent-contrast: #ffffff;
-  --accent-soft: rgba(79, 70, 229, 0.1);
+  --accent-soft: rgba(91, 87, 232, 0.1);
+  --accent-glow: rgba(91, 87, 232, 0.33);
   --danger: #e11d48;
   --danger-soft: rgba(225, 29, 72, 0.1);
-  --shadow: 0 1px 2px rgba(16, 24, 40, 0.06), 0 1px 3px rgba(16, 24, 40, 0.1);
-  --shadow-lg: 0 10px 24px rgba(16, 24, 40, 0.12);
+  --shadow: 0 1px 2px rgba(16, 24, 40, 0.05), 0 1px 3px rgba(16, 24, 40, 0.08);
+  --shadow-lg: 0 12px 30px rgba(16, 24, 40, 0.14);
 
   --radius: 10px;
   --radius-sm: 7px;
@@ -44,10 +45,11 @@
   --text: #e7e9ee;
   --text-muted: #99a2b2;
   --text-faint: #6b7483;
-  --accent: #6366f1;
-  --accent-hover: #7c7ff5;
+  --accent: #7c7ff7;
+  --accent-hover: #9093fb;
   --accent-contrast: #ffffff;
-  --accent-soft: rgba(99, 102, 241, 0.18);
+  --accent-soft: rgba(124, 127, 247, 0.18);
+  --accent-glow: rgba(99, 102, 241, 0.5);
   --danger: #fb7185;
   --danger-soft: rgba(251, 113, 133, 0.16);
   --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 2px 6px rgba(0, 0, 0, 0.35);
@@ -109,5 +111,76 @@ button {
   border-radius: var(--radius-sm);
   border: 1px solid transparent;
   transition: background-color 0.15s ease, border-color 0.15s ease,
-    opacity 0.15s ease;
+    box-shadow 0.15s ease, transform 0.05s ease, opacity 0.15s ease;
+}
+
+/* Give accent/CTA buttons a soft tinted lift so they don't read as a flat
+ * block of color. Defined globally so every page's primary button matches. */
+.primary {
+  box-shadow: 0 1px 2px rgba(16, 24, 40, 0.08),
+    0 7px 16px -7px var(--accent-glow);
+}
+
+.primary:hover:not(:disabled) {
+  box-shadow: 0 1px 2px rgba(16, 24, 40, 0.1),
+    0 9px 22px -7px var(--accent-glow);
+}
+
+.primary:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.primary:disabled {
+  box-shadow: none;
+}
+
+/* Shared centered empty state (notes, dashboard, terminals welcome). */
+.empty-state {
+  min-height: 46vh;
+  margin: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 0.35rem;
+  color: var(--text-muted);
+  padding: 2rem;
+}
+
+.empty-state .es-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 58px;
+  height: 58px;
+  margin-bottom: 0.7rem;
+  border-radius: 16px;
+  background-color: var(--accent-soft);
+  color: var(--accent);
+}
+
+.empty-state h2 {
+  margin: 0;
+  color: var(--text);
+  font-size: 1.1rem;
+}
+
+.empty-state p {
+  margin: 0;
+  font-size: 0.9rem;
+  max-width: 340px;
+  line-height: 1.55;
+}
+
+.empty-state .primary {
+  margin-top: 0.9rem;
+  padding: 0.55rem 1.1rem;
+  font-weight: 600;
+  background-color: var(--accent);
+  color: var(--accent-contrast);
+}
+
+.empty-state .primary:hover {
+  background-color: var(--accent-hover);
 }

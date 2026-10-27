@@ -8,9 +8,17 @@ import { Host } from "./host.model";
   imports: [MetricsCardComponent],
   template: `
     @if (hosts().length === 0) {
-      <div class="dash-empty">
+      <div class="empty-state">
+        <span class="es-icon">
+          <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="3" width="7" height="9" rx="1" />
+            <rect x="14" y="3" width="7" height="5" rx="1" />
+            <rect x="14" y="12" width="7" height="9" rx="1" />
+            <rect x="3" y="16" width="7" height="5" rx="1" />
+          </svg>
+        </span>
         <h2>No metrics yet</h2>
-        <p>Connect to a host to start monitoring it here.</p>
+        <p>Connect to a host from the sidebar and its live CPU, memory, disk, load and uptime will appear here.</p>
       </div>
     } @else {
       <div class="dash-grid">
@@ -32,19 +40,6 @@ import { Host } from "./host.model";
         display: grid;
         grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
         gap: 1rem;
-      }
-      .dash-empty {
-        height: 100%;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        text-align: center;
-        color: var(--text-muted);
-      }
-      .dash-empty h2 {
-        margin: 0 0 0.25rem;
-        color: var(--text);
       }
     `,
   ],

@@ -34,7 +34,22 @@ import { Host } from "./host.model";
     </div>
 
     @if (filtered().length === 0) {
-      <p class="empty">No notes match. Create one with “New note”.</p>
+      <div class="empty-state">
+        <span class="es-icon">
+          <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4 3h11l5 5v13a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Z" />
+            <path d="M14 3v6h6M8 13h8M8 17h5" />
+          </svg>
+        </span>
+        @if (notes().length === 0) {
+          <h2>No notes yet</h2>
+          <p>Save commands and snippets here — run them in a terminal or copy them when you need them.</p>
+          <button class="primary" type="button" (click)="addNew.emit()">Create your first note</button>
+        } @else {
+          <h2>No matches</h2>
+          <p>No notes match your search or filter.</p>
+        }
+      </div>
     }
 
     <ul class="note-list">
@@ -104,10 +119,6 @@ import { Host } from "./host.model";
         border-radius: var(--radius-sm);
         padding: 0.5rem 0.6rem;
         color: var(--text);
-      }
-      .empty {
-        color: var(--text-faint);
-        font-size: 0.9rem;
       }
       .note-list {
         list-style: none;

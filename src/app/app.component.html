@@ -125,10 +125,21 @@
     <!-- Terminals view (kept mounted so sessions survive view switches). -->
     <section class="view-terminals" [style.display]="view() === 'terminals' ? 'flex' : 'none'">
       @if (sessions().length === 0) {
-        <div class="welcome">
-          <h2>No open sessions</h2>
-          <p>Click a host in the sidebar to open a terminal.</p>
-          <button class="primary" type="button" (click)="openAddForm()">Add a host</button>
+        <div class="empty-state">
+          <span class="es-icon">
+            <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="2" y="3" width="20" height="18" rx="2" />
+              <path d="m6 8 3 3-3 3M12 14h5" />
+            </svg>
+          </span>
+          @if (hosts().length === 0) {
+            <h2>Welcome to SSH Manager</h2>
+            <p>Add a host to get started, then click it to open a terminal.</p>
+            <button class="primary" type="button" (click)="openAddForm()">Add your first host</button>
+          } @else {
+            <h2>No open sessions</h2>
+            <p>Click a host in the sidebar to open a terminal.</p>
+          }
         </div>
       } @else {
         <div class="tabs">
