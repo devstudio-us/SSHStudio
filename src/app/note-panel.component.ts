@@ -29,29 +29,33 @@ import { Host } from "./host.model";
           </button>
         </header>
 
-        <div class="scroll">
-          <section>
+        <div class="split">
+          <section class="pane">
             <div class="sec-head">
               <span>Global</span>
               <button class="mini" type="button" (click)="add.emit(null)" title="Add global note">+</button>
             </div>
-            @for (note of globalNotes(); track note.id) {
-              <ng-container [ngTemplateOutlet]="row" [ngTemplateOutletContext]="{ $implicit: note }" />
-            } @empty {
-              <p class="none">No global notes.</p>
-            }
+            <div class="pane-scroll">
+              @for (note of globalNotes(); track note.id) {
+                <ng-container [ngTemplateOutlet]="row" [ngTemplateOutletContext]="{ $implicit: note }" />
+              } @empty {
+                <p class="none">No global notes.</p>
+              }
+            </div>
           </section>
 
-          <section>
+          <section class="pane">
             <div class="sec-head">
               <span>{{ host().name || host().hostname }}</span>
               <button class="mini" type="button" (click)="add.emit(host().id)" title="Add note for this host">+</button>
             </div>
-            @for (note of hostNotes(); track note.id) {
-              <ng-container [ngTemplateOutlet]="row" [ngTemplateOutletContext]="{ $implicit: note }" />
-            } @empty {
-              <p class="none">No notes for this host.</p>
-            }
+            <div class="pane-scroll">
+              @for (note of hostNotes(); track note.id) {
+                <ng-container [ngTemplateOutlet]="row" [ngTemplateOutletContext]="{ $implicit: note }" />
+              } @empty {
+                <p class="none">No notes for this host.</p>
+              }
+            </div>
           </section>
         </div>
       </div>
@@ -108,7 +112,7 @@ import { Host } from "./host.model";
         text-transform: uppercase;
       }
       .panel {
-        width: 270px;
+        width: 330px;
         height: 100%;
         display: flex;
         flex-direction: column;
@@ -127,23 +131,39 @@ import { Host } from "./host.model";
         letter-spacing: 0.05em;
         color: var(--text-muted);
       }
-      .scroll {
+      /* Two equal, independently scrolling halves: Global on top, host below. */
+      .split {
         flex: 1;
-        overflow-y: auto;
-        padding: 0.5rem;
+        min-height: 0;
+        display: flex;
+        flex-direction: column;
       }
-      section {
-        margin-bottom: 0.9rem;
+      .pane {
+        flex: 1;
+        min-height: 0;
+        display: flex;
+        flex-direction: column;
+      }
+      .pane:first-child {
+        border-bottom: 1px solid var(--border);
+      }
+      .pane-scroll {
+        flex: 1;
+        min-height: 0;
+        overflow-y: auto;
+        padding: 0.4rem 0.5rem 0.6rem;
       }
       .sec-head {
         display: flex;
         align-items: center;
         justify-content: space-between;
-        padding: 0.2rem 0.3rem;
+        padding: 0.45rem 0.5rem 0.3rem;
         font-size: 0.72rem;
         font-weight: 600;
         letter-spacing: 0.04em;
+        text-transform: uppercase;
         color: var(--text-faint);
+        background-color: var(--surface);
       }
       .mini {
         display: inline-flex;
