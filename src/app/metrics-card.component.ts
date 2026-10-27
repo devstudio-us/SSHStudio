@@ -27,11 +27,41 @@ type Status = "pending" | "ok" | "error";
       <header>
         <span class="dot" [class]="status()"></span>
         <span class="name">{{ host().name || host().hostname }}</span>
-        <span class="addr">{{ host().hostname }}:{{ host().port }}</span>
-        <button class="add-note" type="button" (click)="addNote.emit(host().id)" title="Add a note for this host">
-          + note
-        </button>
+        <div class="card-actions">
+          <button class="icon" type="button" (click)="edit.emit(host())" title="Edit server" aria-label="Edit server">
+            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 20h9" />
+              <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" />
+            </svg>
+          </button>
+          <button class="icon danger" type="button" (click)="remove.emit(host())" title="Delete server" aria-label="Delete server">
+            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2m2 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" />
+              <path d="M10 11v6M14 11v6" />
+            </svg>
+          </button>
+          <button class="add-note" type="button" (click)="addNote.emit(host().id)" title="Add a note for this host">
+            + note
+          </button>
+        </div>
       </header>
+
+      <div class="addr-line">{{ host().user ? host().user + "@" : "" }}{{ host().hostname }}:{{ host().port }}</div>
+
+      @if (host().tags.length > 0 || host().notes) {
+        <div class="meta">
+          @if (host().tags.length > 0) {
+            <div class="tags">
+              @for (tag of host().tags; track tag) {
+                <span class="tag">{{ tag }}</span>
+              }
+            </div>
+          }
+          @if (host().notes) {
+            <p class="host-notes">{{ host().notes }}</p>
+          }
+        </div>
+      }
 
       @if (status() === "error") {
         <p class="msg">{{ metrics()?.error || "Disconnected" }}</p>
@@ -115,11 +145,34 @@ type Status = "pending" | "ok" | "error";
       }
       .name {
         font-weight: 600;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
       }
-      .addr {
+      .card-actions {
         margin-left: auto;
-        font-size: 0.78rem;
-        color: var(--text-muted);
+        display: flex;
+        align-items: center;
+        gap: 0.3rem;
+        flex-shrink: 0;
+      }
+      .icon {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 26px;
+        height: 26px;
+        background: transparent;
+        border: none;
+        color: var(--text-faint);
+      }
+      .icon:hover {
+        color: var(--text);
+        background-color: var(--surface-hover);
+      }
+      .icon.danger:hover {
+        color: var(--danger);
+        background-color: var(--danger-soft);
       }
       .add-note {
         padding: 0.2rem 0.5rem;
@@ -131,6 +184,38 @@ type Status = "pending" | "ok" | "error";
       .add-note:hover {
         color: var(--accent);
         border-color: var(--accent);
+      }
+      .addr-line {
+        margin-top: -0.3rem;
+        font-size: 0.8rem;
+        color: var(--text-muted);
+        font-variant-numeric: tabular-nums;
+      }
+      .meta {
+        display: flex;
+        flex-direction: column;
+        gap: 0.35rem;
+      }
+      .tags {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.3rem;
+      }
+      .tag {
+        font-size: 0.68rem;
+        padding: 0.05rem 0.45rem;
+        border-radius: 999px;
+        background-color: var(--surface-2);
+        color: var(--text-muted);
+      }
+      .host-notes {
+        margin: 0;
+        font-size: 0.8rem;
+        color: var(--text-muted);
+        white-space: pre-wrap;
+        padding: 0.4rem 0.55rem;
+        background-color: var(--surface-2);
+        border-radius: var(--radius-sm);
       }
       .msg {
         margin: 0;
@@ -207,6 +292,8 @@ export class MetricsCardComponent implements OnInit, OnDestroy {
   readonly host = input.required<Host>();
   /** Emits this host's id to open the note form scoped to it. */
   readonly addNote = output<string>();
+  readonly edit = output<Host>();
+  readonly remove = output<Host>();
 
   private readonly metricsService = inject(MetricsService);
   readonly metrics = signal<HostMetrics | null>(null);

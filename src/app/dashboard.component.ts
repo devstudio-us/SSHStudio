@@ -7,6 +7,11 @@ import { Host } from "./host.model";
   selector: "app-dashboard",
   imports: [MetricsCardComponent],
   template: `
+    <header class="dash-head">
+      <h1>Dashboard</h1>
+      <p>Live metrics for the servers you've connected to this session.</p>
+    </header>
+
     @if (hosts().length === 0) {
       <div class="empty-state">
         <span class="es-icon">
@@ -23,7 +28,12 @@ import { Host } from "./host.model";
     } @else {
       <div class="dash-grid">
         @for (host of hosts(); track host.id) {
-          <app-metrics-card [host]="host" (addNote)="addNote.emit($event)" />
+          <app-metrics-card
+            [host]="host"
+            (addNote)="addNote.emit($event)"
+            (edit)="edit.emit($event)"
+            (remove)="remove.emit($event)"
+          />
         }
       </div>
     }
@@ -34,7 +44,19 @@ import { Host } from "./host.model";
         display: block;
         height: 100%;
         overflow-y: auto;
-        padding: 1.25rem;
+        padding: 1.5rem;
+      }
+      .dash-head {
+        margin-bottom: 1.25rem;
+      }
+      .dash-head h1 {
+        margin: 0;
+        font-size: 1.35rem;
+      }
+      .dash-head p {
+        margin: 0.25rem 0 0;
+        font-size: 0.9rem;
+        color: var(--text-muted);
       }
       .dash-grid {
         display: grid;
@@ -48,4 +70,6 @@ export class DashboardComponent {
   readonly hosts = input.required<Host[]>();
   /** Bubbled up from a card: the host id to scope a new note to. */
   readonly addNote = output<string>();
+  readonly edit = output<Host>();
+  readonly remove = output<Host>();
 }

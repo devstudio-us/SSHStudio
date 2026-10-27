@@ -257,8 +257,8 @@ export class AppComponent implements OnInit {
     this.showHostForm.set(true);
   }
 
-  openEditForm(host: Host, event: Event): void {
-    event.stopPropagation();
+  openEditForm(host: Host, event?: Event): void {
+    event?.stopPropagation();
     this.form = {
       name: host.name,
       hostname: host.hostname,
@@ -301,8 +301,8 @@ export class AppComponent implements OnInit {
     }
   }
 
-  async deleteHost(host: Host, event: Event): Promise<void> {
-    event.stopPropagation();
+  async deleteHost(host: Host, event?: Event): Promise<void> {
+    event?.stopPropagation();
     this.error.set("");
     try {
       await this.hostsService.remove(host.id);

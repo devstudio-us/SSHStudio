@@ -33,13 +33,6 @@
 <div class="layout">
   <aside class="sidebar">
     <nav class="side-nav">
-      <button type="button" [class.active]="view() === 'terminals'" (click)="setView('terminals')">
-        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <rect x="2" y="3" width="20" height="18" rx="2" />
-          <path d="m6 8 3 3-3 3M12 14h5" />
-        </svg>
-        Terminals
-      </button>
       <button type="button" [class.active]="view() === 'dashboard'" (click)="setView('dashboard')">
         <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <rect x="3" y="3" width="7" height="9" rx="1" />
@@ -55,6 +48,13 @@
           <path d="M14 3v6h6M8 13h8M8 17h5" />
         </svg>
         Notes
+      </button>
+      <button type="button" [class.active]="view() === 'terminals'" (click)="setView('terminals')">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="2" y="3" width="20" height="18" rx="2" />
+          <path d="m6 8 3 3-3 3M12 14h5" />
+        </svg>
+        Terminals
       </button>
     </nav>
 
@@ -189,6 +189,8 @@
       [style.display]="view() === 'dashboard' ? 'block' : 'none'"
       [hosts]="dashboardHosts()"
       (addNote)="openNoteForm($event)"
+      (edit)="openEditForm($event)"
+      (remove)="deleteHost($event)"
     />
 
     <!-- Notes view. -->
