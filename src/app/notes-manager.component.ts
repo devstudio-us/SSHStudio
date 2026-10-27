@@ -120,10 +120,10 @@ import { Host } from "./host.model";
         list-style: none;
         margin: 0;
         padding: 0;
-        display: flex;
-        flex-direction: column;
-        gap: 0.75rem;
-        max-width: 760px;
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(330px, 1fr));
+        gap: 0.85rem;
+        align-items: start;
       }
       .note {
         background-color: var(--surface);

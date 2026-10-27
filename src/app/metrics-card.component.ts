@@ -1,8 +1,8 @@
 import {
   Component,
   OnDestroy,
-  OnInit,
   computed,
+  effect,
   inject,
   input,
   output,
@@ -23,9 +23,9 @@ type Status = "pending" | "ok" | "error";
 @Component({
   selector: "app-metrics-card",
   template: `
-    <div class="card" [class.offline]="status() === 'error'">
+    <div class="card" [class.offline]="monitored() && status() === 'error'">
       <header>
-        <span class="dot" [class]="status()"></span>
+        <span class="dot" [class]="monitored() ? status() : 'offline'"></span>
         <span class="name">{{ host().name || host().hostname }}</span>
         <div class="card-actions">
           <button class="icon" type="button" (click)="edit.emit(host())" title="Edit server" aria-label="Edit server">
@@ -63,48 +63,55 @@ type Status = "pending" | "ok" | "error";
         </div>
       }
 
-      @if (status() === "error") {
-        <p class="msg">{{ metrics()?.error || "Disconnected" }}</p>
-      } @else if (status() === "pending") {
-        <p class="msg">Connecting…</p>
+      @if (!monitored()) {
+        <div class="idle">
+          <span class="idle-text">Not connected — connect to see live metrics.</span>
+          <button class="primary connect" type="button" (click)="connect.emit(host())">Connect</button>
+        </div>
+      } @else {
+        @if (status() === "error") {
+          <p class="msg">{{ metrics()?.error || "Disconnected" }}</p>
+        } @else if (status() === "pending") {
+          <p class="msg">Connecting…</p>
+        }
+
+        <div class="bars" [class.dim]="status() !== 'ok'">
+          <div class="bar-row">
+            <span class="bar-label">CPU</span>
+            <div class="track">
+              <div class="fill" [class]="level(cpuPct())" [style.width.%]="cpuPct()"></div>
+            </div>
+            <span class="bar-val">{{ fmtPct(metrics()?.cpu_percent ?? null) }}</span>
+          </div>
+
+          <div class="bar-row">
+            <span class="bar-label">RAM</span>
+            <div class="track">
+              <div class="fill" [class]="level(ramPct())" [style.width.%]="ramPct()"></div>
+            </div>
+            <span class="bar-val">{{ ramText() }}</span>
+          </div>
+
+          <div class="bar-row">
+            <span class="bar-label">DISK</span>
+            <div class="track">
+              <div class="fill" [class]="level(diskPct())" [style.width.%]="diskPct()"></div>
+            </div>
+            <span class="bar-val">{{ diskText() }}</span>
+          </div>
+        </div>
+
+        <footer>
+          <div>
+            <span class="foot-label">Load</span>
+            <span class="foot-val">{{ loadText() }}</span>
+          </div>
+          <div>
+            <span class="foot-label">Uptime</span>
+            <span class="foot-val">{{ uptimeText() }}</span>
+          </div>
+        </footer>
       }
-
-      <div class="bars" [class.dim]="status() !== 'ok'">
-        <div class="bar-row">
-          <span class="bar-label">CPU</span>
-          <div class="track">
-            <div class="fill" [class]="level(cpuPct())" [style.width.%]="cpuPct()"></div>
-          </div>
-          <span class="bar-val">{{ fmtPct(metrics()?.cpu_percent ?? null) }}</span>
-        </div>
-
-        <div class="bar-row">
-          <span class="bar-label">RAM</span>
-          <div class="track">
-            <div class="fill" [class]="level(ramPct())" [style.width.%]="ramPct()"></div>
-          </div>
-          <span class="bar-val">{{ ramText() }}</span>
-        </div>
-
-        <div class="bar-row">
-          <span class="bar-label">DISK</span>
-          <div class="track">
-            <div class="fill" [class]="level(diskPct())" [style.width.%]="diskPct()"></div>
-          </div>
-          <span class="bar-val">{{ diskText() }}</span>
-        </div>
-      </div>
-
-      <footer>
-        <div>
-          <span class="foot-label">Load</span>
-          <span class="foot-val">{{ loadText() }}</span>
-        </div>
-        <div>
-          <span class="foot-label">Uptime</span>
-          <span class="foot-val">{{ uptimeText() }}</span>
-        </div>
-      </footer>
     </div>
   `,
   styles: [
@@ -142,6 +149,31 @@ type Status = "pending" | "ok" | "error";
       }
       .dot.pending {
         background-color: #eab308;
+      }
+      .dot.offline {
+        background-color: var(--text-faint);
+      }
+      .idle {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.75rem;
+        padding: 0.6rem 0;
+      }
+      .idle-text {
+        font-size: 0.82rem;
+        color: var(--text-muted);
+      }
+      .connect {
+        padding: 0.4rem 0.9rem;
+        font-size: 0.82rem;
+        font-weight: 600;
+        background-color: var(--accent);
+        color: var(--accent-contrast);
+        flex-shrink: 0;
+      }
+      .connect:hover {
+        background-color: var(--accent-hover);
       }
       .name {
         font-weight: 600;
@@ -288,8 +320,11 @@ type Status = "pending" | "ok" | "error";
     `,
   ],
 })
-export class MetricsCardComponent implements OnInit, OnDestroy {
+export class MetricsCardComponent implements OnDestroy {
   readonly host = input.required<Host>();
+  /** Whether this host is connected this session (so it can be polled). */
+  readonly monitored = input<boolean>(false);
+  readonly connect = output<Host>();
   /** Emits this host's id to open the note form scoped to it. */
   readonly addNote = output<string>();
   readonly edit = output<Host>();
@@ -299,6 +334,7 @@ export class MetricsCardComponent implements OnInit, OnDestroy {
   readonly metrics = signal<HostMetrics | null>(null);
 
   private unlisten?: UnlistenFn;
+  private started = false;
 
   readonly status = computed<Status>(() => {
     const m = this.metrics();
@@ -306,7 +342,18 @@ export class MetricsCardComponent implements OnInit, OnDestroy {
     return m.error ? "error" : "ok";
   });
 
-  async ngOnInit(): Promise<void> {
+  constructor() {
+    // Start polling once the host becomes monitored (now, or after the user
+    // clicks Connect). Guarded so it only starts once.
+    effect(() => {
+      if (this.monitored() && !this.started) {
+        this.started = true;
+        void this.begin();
+      }
+    });
+  }
+
+  private async begin(): Promise<void> {
     const id = this.host().id;
     // Subscribe first so the immediate first snapshot isn't missed.
     this.unlisten = await this.metricsService.onMetrics(id, (m) =>
@@ -317,7 +364,9 @@ export class MetricsCardComponent implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.unlisten?.();
-    void this.metricsService.stopMetrics(this.host().id);
+    if (this.started) {
+      void this.metricsService.stopMetrics(this.host().id);
+    }
   }
 
   // --- derived values ---

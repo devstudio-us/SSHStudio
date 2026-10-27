@@ -187,7 +187,9 @@
     <app-dashboard
       class="view-dashboard"
       [style.display]="view() === 'dashboard' ? 'block' : 'none'"
-      [hosts]="dashboardHosts()"
+      [hosts]="hosts()"
+      [monitoredIds]="connectedHostIds()"
+      (connect)="connectForMetrics($event)"
       (addNote)="openNoteForm($event)"
       (edit)="openEditForm($event)"
       (remove)="deleteHost($event)"

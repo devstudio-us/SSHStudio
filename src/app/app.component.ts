@@ -71,12 +71,10 @@ export class AppComponent implements OnInit {
   readonly notes = this.notesService.notes;
   readonly theme = this.themeService.theme;
 
-  readonly view = signal<View>("terminals");
-  /** Host ids connected at least once this session — the dashboard polls these. */
+  readonly view = signal<View>("dashboard");
+  /** Host ids connected at least once this session — the dashboard polls these;
+   * other hosts still appear on the dashboard, just inactive. */
   readonly connectedHostIds = signal<Set<string>>(new Set());
-  readonly dashboardHosts = computed(() =>
-    this.hosts().filter((h) => this.connectedHostIds().has(h.id)),
-  );
   /** The host of the active terminal session — drives the notes side panel. */
   readonly activeHost = computed(
     () => this.sessions().find((s) => s.id === this.activeId())?.host ?? null,
@@ -137,15 +135,26 @@ export class AppComponent implements OnInit {
     return this.sessions().some((s) => s.host.id === host.id && !s.closed);
   }
 
-  async openHost(host: Host, runAfter?: string): Promise<void> {
+  async openHost(
+    host: Host,
+    runAfter?: string,
+    switchView = true,
+  ): Promise<void> {
     this.error.set("");
     this.connectingId.set(host.id);
-    this.view.set("terminals");
+    if (switchView) {
+      this.view.set("terminals");
+    }
     try {
       await this.connectWith(host, undefined, undefined, runAfter);
     } finally {
       this.connectingId.set(null);
     }
+  }
+
+  /** Connect a host to start monitoring it, without leaving the dashboard. */
+  connectForMetrics(host: Host): void {
+    void this.openHost(host, undefined, false);
   }
 
   /** Attempt a connection, prompting for a secret and retrying on the

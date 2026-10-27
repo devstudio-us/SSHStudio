@@ -30,6 +30,8 @@ import { Host } from "./host.model";
         @for (host of hosts(); track host.id) {
           <app-metrics-card
             [host]="host"
+            [monitored]="monitoredIds().has(host.id)"
+            (connect)="connect.emit($event)"
             (addNote)="addNote.emit($event)"
             (edit)="edit.emit($event)"
             (remove)="remove.emit($event)"
@@ -68,6 +70,9 @@ import { Host } from "./host.model";
 })
 export class DashboardComponent {
   readonly hosts = input.required<Host[]>();
+  /** Host ids currently monitored (connected this session). */
+  readonly monitoredIds = input.required<Set<string>>();
+  readonly connect = output<Host>();
   /** Bubbled up from a card: the host id to scope a new note to. */
   readonly addNote = output<string>();
   readonly edit = output<Host>();
