@@ -193,6 +193,8 @@
       [hosts]="hosts()"
       [monitoredIds]="connectedHostIds()"
       (connect)="connectForMetrics($event)"
+      (openTerminal)="focusOrOpenHost($event)"
+      (addHost)="openAddForm()"
       (addNote)="openNoteForm($event)"
       (edit)="openEditForm($event)"
       (remove)="deleteHost($event)"

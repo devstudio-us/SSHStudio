@@ -174,6 +174,20 @@ export class AppComponent implements OnInit {
     void this.openHost(host, undefined, false);
   }
 
+  /** Open this host's terminal: focus an existing live session if there is
+   * one, otherwise open a new one. Switches to the Terminals view. */
+  focusOrOpenHost(host: Host): void {
+    const live = this.sessions().find(
+      (s) => s.host.id === host.id && !s.closed,
+    );
+    if (live) {
+      this.activeId.set(live.id);
+      this.view.set("terminals");
+    } else {
+      void this.openHost(host);
+    }
+  }
+
   /** Attempt a connection, prompting for a secret and retrying on the
    * PASSWORD_REQUIRED / PASSPHRASE_REQUIRED sentinels (or a bad secret).
    * `runAfter`, if set, is a command the new terminal runs once attached. */

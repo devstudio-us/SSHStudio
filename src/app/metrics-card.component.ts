@@ -28,6 +28,12 @@ type Status = "pending" | "ok" | "error";
         <span class="dot" [class]="monitored() ? status() : 'offline'"></span>
         <span class="name">{{ host().name || host().hostname }}</span>
         <div class="card-actions">
+          <button class="icon" type="button" (click)="openTerminal.emit(host())" title="Open terminal" aria-label="Open terminal">
+            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="2" y="3" width="20" height="18" rx="2" />
+              <path d="m6 8 3 3-3 3M12 14h5" />
+            </svg>
+          </button>
           <button class="icon" type="button" (click)="edit.emit(host())" title="Edit server" aria-label="Edit server">
             <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M12 20h9" />
@@ -325,6 +331,7 @@ export class MetricsCardComponent implements OnDestroy {
   /** Whether this host is connected this session (so it can be polled). */
   readonly monitored = input<boolean>(false);
   readonly connect = output<Host>();
+  readonly openTerminal = output<Host>();
   /** Emits this host's id to open the note form scoped to it. */
   readonly addNote = output<string>();
   readonly edit = output<Host>();
