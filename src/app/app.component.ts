@@ -50,6 +50,14 @@ interface SecretPrompt {
   error?: string;
 }
 
+/** State for the generic confirm-before-delete modal. */
+interface ConfirmState {
+  title: string;
+  message: string;
+  confirmLabel: string;
+  onConfirm: () => void | Promise<void>;
+}
+
 @Component({
   selector: "app-root",
   imports: [
@@ -106,6 +114,8 @@ export class AppComponent implements OnInit {
   readonly editingNoteId = signal<string | null>(null);
   noteForm: NoteForm = AppComponent.blankNoteForm();
   readonly runHostPicker = signal<string | null>(null);
+
+  readonly confirmState = signal<ConfirmState | null>(null);
 
   async ngOnInit(): Promise<void> {
     await Promise.all([this.loadHosts(), this.loadNotes()]);
@@ -317,8 +327,17 @@ export class AppComponent implements OnInit {
     }
   }
 
-  async deleteHost(host: Host, event?: Event): Promise<void> {
+  deleteHost(host: Host, event?: Event): void {
     event?.stopPropagation();
+    this.askConfirm({
+      title: "Delete host",
+      message: `Delete "${host.name || host.hostname}"? This removes it from your saved hosts.`,
+      confirmLabel: "Delete host",
+      onConfirm: () => this.doDeleteHost(host),
+    });
+  }
+
+  private async doDeleteHost(host: Host): Promise<void> {
     this.error.set("");
     try {
       await this.hostsService.remove(host.id);
@@ -374,13 +393,40 @@ export class AppComponent implements OnInit {
     }
   }
 
-  async deleteNote(note: Note): Promise<void> {
+  deleteNote(note: Note): void {
+    this.askConfirm({
+      title: "Delete note",
+      message: `Delete "${note.name || note.command || note.text || "this note"}"?`,
+      confirmLabel: "Delete note",
+      onConfirm: () => this.doDeleteNote(note),
+    });
+  }
+
+  private async doDeleteNote(note: Note): Promise<void> {
     this.error.set("");
     try {
       await this.notesService.remove(note.id);
     } catch (e) {
       this.error.set(String(e));
     }
+  }
+
+  // --- Confirm modal ---
+
+  private askConfirm(state: ConfirmState): void {
+    this.confirmState.set(state);
+  }
+
+  async confirmYes(): Promise<void> {
+    const state = this.confirmState();
+    this.confirmState.set(null);
+    if (state) {
+      await state.onConfirm();
+    }
+  }
+
+  confirmNo(): void {
+    this.confirmState.set(null);
   }
 
   // --- Notes: run ---

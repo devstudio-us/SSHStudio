@@ -1,7 +1,19 @@
-import { Component, computed, input, output, signal } from "@angular/core";
+import {
+  AfterViewInit,
+  Component,
+  ElementRef,
+  OnDestroy,
+  computed,
+  inject,
+  input,
+  output,
+  signal,
+} from "@angular/core";
 import { SelectComponent, SelectOption } from "./select.component";
 import { Note } from "./note.model";
 import { Host } from "./host.model";
+
+const MIN_COL_WIDTH = 340; // px per column before adding another
 
 /**
  * Full-page manager for notes: list, filter by scope (Global / a host), search
@@ -53,9 +65,11 @@ import { Host } from "./host.model";
       </div>
     }
 
-    <ul class="note-list">
-      @for (note of filtered(); track note.id) {
-        <li class="note">
+    <div class="note-cols">
+      @for (col of noteColumns(); track $index) {
+        <div class="note-col">
+          @for (note of col; track note.id) {
+            <div class="note">
           <div class="note-top">
             @if (note.command) {
               <span class="run-ico" title="Runnable">
@@ -101,9 +115,11 @@ import { Host } from "./host.model";
               <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2m2 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" /><path d="M10 11v6M14 11v6" /></svg>
             </button>
           </div>
-        </li>
+            </div>
+          }
+        </div>
       }
-    </ul>
+    </div>
   `,
   styles: [
     `
@@ -135,17 +151,21 @@ import { Host } from "./host.model";
       .filters .scope-select {
         min-width: 160px;
       }
-      /* Masonry: cards pack top-to-bottom per column, no row-alignment gaps. */
-      .note-list {
-        list-style: none;
-        margin: 0;
-        padding: 0;
-        columns: 320px;
-        column-gap: 0.85rem;
+      /* Masonry via JS-distributed columns: cards fill row-major (first row
+       * reads left-to-right) and each column packs tightly with no gaps. */
+      .note-cols {
+        display: flex;
+        align-items: flex-start;
+        gap: 0.85rem;
+      }
+      .note-col {
+        flex: 1;
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 0.85rem;
       }
       .note {
-        break-inside: avoid;
-        margin: 0 0 0.85rem;
         background-color: var(--surface);
         border: 1px solid var(--border);
         border-radius: var(--radius);
@@ -281,7 +301,7 @@ import { Host } from "./host.model";
     `,
   ],
 })
-export class NotesManagerComponent {
+export class NotesManagerComponent implements AfterViewInit, OnDestroy {
   readonly notes = input.required<Note[]>();
   readonly hosts = input.required<Host[]>();
 
@@ -293,6 +313,41 @@ export class NotesManagerComponent {
   readonly query = signal("");
   readonly scopeFilter = signal("all");
   readonly copiedId = signal<string | null>(null);
+
+  private readonly host = inject(ElementRef<HTMLElement>);
+  private resizeObserver?: ResizeObserver;
+  /** Available width for the columns; drives the responsive column count. */
+  private readonly width = signal(0);
+
+  /** Number of columns that fit, from 1 up. */
+  readonly columnCount = computed(() =>
+    Math.max(1, Math.floor((this.width() || MIN_COL_WIDTH) / MIN_COL_WIDTH)),
+  );
+
+  /** Filtered notes distributed across columns round-robin by index, so the
+   * first row reads left-to-right and each column still packs tightly. */
+  readonly noteColumns = computed<Note[][]>(() => {
+    const n = this.columnCount();
+    const cols: Note[][] = Array.from({ length: n }, () => []);
+    this.filtered().forEach((note, i) => cols[i % n].push(note));
+    return cols;
+  });
+
+  ngAfterViewInit(): void {
+    const el = this.host.nativeElement;
+    this.resizeObserver = new ResizeObserver(() => {
+      // Subtract the host's horizontal padding to get the usable track width.
+      const style = getComputedStyle(el);
+      const pad =
+        parseFloat(style.paddingLeft) + parseFloat(style.paddingRight);
+      this.width.set(Math.max(0, el.clientWidth - pad));
+    });
+    this.resizeObserver.observe(el);
+  }
+
+  ngOnDestroy(): void {
+    this.resizeObserver?.disconnect();
+  }
 
   readonly scopeOptions = computed<SelectOption[]>(() => [
     { value: "all", label: "All scopes" },

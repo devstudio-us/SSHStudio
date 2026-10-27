@@ -330,6 +330,20 @@
   </div>
 }
 
+<!-- Confirm-before-delete modal -->
+@if (confirmState(); as confirm) {
+  <div class="modal-overlay" (click)="confirmNo()">
+    <div class="modal narrow" (click)="$event.stopPropagation()">
+      <h2>{{ confirm.title }}</h2>
+      <p class="confirm-msg">{{ confirm.message }}</p>
+      <div class="modal-actions">
+        <button type="button" class="ghost" (click)="confirmNo()">Cancel</button>
+        <button type="button" class="btn-danger" (click)="confirmYes()">{{ confirm.confirmLabel }}</button>
+      </div>
+    </div>
+  </div>
+}
+
 <!-- "Run on which host?" picker (global note with no terminal open) -->
 @if (runHostPicker() !== null) {
   <div class="modal-overlay" (click)="cancelRunHost()">

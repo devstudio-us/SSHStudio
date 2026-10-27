@@ -558,3 +558,22 @@ button.ghost:hover {
   gap: 0.6rem;
   margin-top: 0.4rem;
 }
+
+.confirm-msg {
+  margin: 0 0 1.1rem;
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+.btn-danger {
+  padding: 0.55rem 1.1rem;
+  font-weight: 600;
+  background-color: var(--danger);
+  color: #ffffff;
+  border: 1px solid transparent;
+}
+
+.btn-danger:hover {
+  filter: brightness(0.94);
+}
