@@ -82,6 +82,7 @@ export class AppComponent implements OnInit {
   readonly theme = this.themeService.theme;
 
   readonly view = signal<View>("dashboard");
+  readonly sidebarCollapsed = signal<boolean>(AppComponent.loadCollapsed());
   /** Host ids connected at least once this session — the dashboard polls these;
    * other hosts still appear on the dashboard, just inactive. */
   readonly connectedHostIds = signal<Set<string>>(new Set());
@@ -143,6 +144,31 @@ export class AppComponent implements OnInit {
 
   setView(view: View): void {
     this.view.set(view);
+  }
+
+  toggleSidebar(): void {
+    this.sidebarCollapsed.update((c) => !c);
+    try {
+      localStorage.setItem(
+        "ssh-manager-sidebar",
+        this.sidebarCollapsed() ? "1" : "0",
+      );
+    } catch {
+      // storage may be unavailable; collapse state just won't persist
+    }
+  }
+
+  /** First letter of a host, for the collapsed-sidebar avatar. */
+  hostInitial(host: Host): string {
+    return (host.name || host.hostname).trim().charAt(0).toUpperCase() || "?";
+  }
+
+  private static loadCollapsed(): boolean {
+    try {
+      return localStorage.getItem("ssh-manager-sidebar") === "1";
+    } catch {
+      return false;
+    }
   }
 
   // --- Sessions / tabs ---
