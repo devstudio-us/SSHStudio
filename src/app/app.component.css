@@ -484,15 +484,6 @@ button.ghost:hover {
   max-width: 380px;
 }
 
-.modal select {
-  background-color: var(--surface);
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius-sm);
-  padding: 0.5rem 0.6rem;
-  color: var(--text);
-  font-size: 0.95rem;
-}
-
 .picker-list {
   list-style: none;
   margin: 0 0 0.8rem;

@@ -106,6 +106,46 @@ textarea {
   resize: vertical;
 }
 
+/* Native selects look out of place; style them to match the inputs with a
+ * custom chevron. The chevron is an inline SVG data URI (can't use
+ * currentColor), so its color is set per theme below. */
+select {
+  appearance: none;
+  -webkit-appearance: none;
+  background-color: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  padding: 0.5rem 2.1rem 0.5rem 0.7rem;
+  color: var(--text);
+  font-size: 0.95rem;
+  cursor: pointer;
+  background-repeat: no-repeat;
+  background-position: right 0.65rem center;
+  background-size: 15px;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'><path d='m6 9 6 6 6-6'/></svg>");
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+select:hover {
+  border-color: var(--text-faint);
+}
+
+select:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+:root[data-theme="dark"] select {
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%239aa2b0' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'><path d='m6 9 6 6 6-6'/></svg>");
+}
+
+/* Options render with the OS palette; set sane colors for dark mode menus. */
+select option {
+  background-color: var(--surface);
+  color: var(--text);
+}
+
 button {
   cursor: pointer;
   border-radius: var(--radius-sm);

@@ -113,12 +113,8 @@ import { Host } from "./host.model";
       .search {
         flex: 1;
       }
-      select {
-        background-color: var(--surface);
-        border: 1px solid var(--border-strong);
-        border-radius: var(--radius-sm);
-        padding: 0.5rem 0.6rem;
-        color: var(--text);
+      .filters select {
+        min-width: 150px;
       }
       .note-list {
         list-style: none;
