@@ -117,6 +117,8 @@
 }
 
 .sidebar {
+  display: flex;
+  flex-direction: column;
   width: 290px;
   flex-shrink: 0;
   background-color: var(--surface);
@@ -124,97 +126,6 @@
   padding: 0.6rem 0.75rem 1rem;
   overflow-y: auto;
   overflow-x: hidden;
-  transition: width 0.18s ease;
-}
-
-.sidebar.collapsed {
-  width: 66px;
-  padding-left: 0.5rem;
-  padding-right: 0.5rem;
-}
-
-.sidebar-toggle {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 30px;
-  height: 30px;
-  align-self: flex-end;
-  margin-bottom: 0.35rem;
-  background: transparent;
-  border: none;
-  color: var(--text-faint);
-  border-radius: var(--radius-sm);
-}
-
-.sidebar-toggle:hover {
-  background-color: var(--surface-hover);
-  color: var(--text);
-}
-
-.sidebar.collapsed .sidebar-toggle {
-  align-self: center;
-  transform: rotate(180deg);
-}
-
-/* aside is already a flex column via the layout; make the toggle sit on its own row */
-.sidebar {
-  display: flex;
-  flex-direction: column;
-}
-
-/* Host avatar — shown only when the sidebar is collapsed. */
-.host-avatar {
-  display: none;
-  align-items: center;
-  justify-content: center;
-  width: 32px;
-  height: 32px;
-  flex-shrink: 0;
-  border-radius: 9px;
-  font-size: 0.82rem;
-  font-weight: 700;
-  background-color: var(--surface-2);
-  color: var(--text-muted);
-}
-
-.host-avatar.connected {
-  background-color: var(--accent-soft);
-  color: var(--accent);
-}
-
-/* ---- Collapsed sidebar: icons only ---- */
-.sidebar.collapsed .nav-label,
-.sidebar.collapsed .sidebar-head h2,
-.sidebar.collapsed .sidebar-head .count,
-.sidebar.collapsed .empty,
-.sidebar.collapsed .host-main,
-.sidebar.collapsed .host-actions,
-.sidebar.collapsed .spinner {
-  display: none;
-}
-
-.sidebar.collapsed .side-nav button {
-  justify-content: center;
-  padding: 0.55rem;
-}
-
-.sidebar.collapsed .sidebar-head {
-  justify-content: center;
-  padding: 0 0 0.6rem;
-}
-
-.sidebar.collapsed .sidebar-head .add {
-  margin-left: 0;
-}
-
-.sidebar.collapsed .host-item {
-  justify-content: center;
-  padding: 0.35rem;
-}
-
-.sidebar.collapsed .host-avatar {
-  display: inline-flex;
 }
 
 .sidebar-head {
