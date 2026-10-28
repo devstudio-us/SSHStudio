@@ -1,6 +1,6 @@
 import { Injectable, signal } from "@angular/core";
 import { invoke } from "@tauri-apps/api/core";
-import { Host, NewHost } from "./host.model";
+import { Host, NewHost } from "../models/host.model";
 
 /**
  * Thin wrapper over the hosts Tauri commands. Holds the current list in a

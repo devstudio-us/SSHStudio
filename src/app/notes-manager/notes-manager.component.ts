@@ -10,8 +10,8 @@ import {
   signal,
 } from "@angular/core";
 import { SelectComponent, SelectOption } from "../select/select.component";
-import { Note } from "../note.model";
-import { Host } from "../host.model";
+import { Note } from "../models/note.model";
+import { Host } from "../models/host.model";
 
 const MIN_COL_WIDTH = 340; // px per column before adding another
 

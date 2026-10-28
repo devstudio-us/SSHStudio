@@ -9,9 +9,9 @@ import {
   signal,
 } from "@angular/core";
 import { UnlistenFn } from "@tauri-apps/api/event";
-import { MetricsService } from "../metrics.service";
-import { HostMetrics } from "../metrics.model";
-import { Host } from "../host.model";
+import { MetricsService } from "../services/metrics.service";
+import { HostMetrics } from "../models/metrics.model";
+import { Host } from "../models/host.model";
 
 type Status = "pending" | "ok" | "error";
 

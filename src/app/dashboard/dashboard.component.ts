@@ -8,7 +8,7 @@ import {
   viewChild,
 } from "@angular/core";
 import { MetricsCardComponent } from "../metrics-card/metrics-card.component";
-import { Host } from "../host.model";
+import { Host } from "../models/host.model";
 
 /** Dashboard of metrics cards for every host, with a header toolbar
  * (live indicator, search, add host). Cards for un-connected hosts show an

@@ -1,16 +1,16 @@
 import { Component, computed, inject, OnInit, signal } from "@angular/core";
 import { FormsModule } from "@angular/forms";
-import { HostsService } from "../hosts.service";
-import { ThemeService } from "../theme.service";
-import { SshService } from "../ssh.service";
+import { HostsService } from "../services/hosts.service";
+import { ThemeService } from "../services/theme.service";
+import { SshService } from "../services/ssh.service";
 import { TerminalComponent } from "../terminal/terminal.component";
 import { DashboardComponent } from "../dashboard/dashboard.component";
 import { NotesManagerComponent } from "../notes-manager/notes-manager.component";
 import { NotePanelComponent } from "../note-panel/note-panel.component";
 import { SelectComponent, SelectOption } from "../select/select.component";
-import { NotesService } from "../notes.service";
-import { Host } from "../host.model";
-import { Note } from "../note.model";
+import { NotesService } from "../services/notes.service";
+import { Host } from "../models/host.model";
+import { Note } from "../models/note.model";
 
 type View = "terminals" | "dashboard" | "notes";
 

@@ -12,8 +12,8 @@ import {
 import { Terminal, ITheme } from "@xterm/xterm";
 import { FitAddon } from "@xterm/addon-fit";
 import { UnlistenFn } from "@tauri-apps/api/event";
-import { SshService } from "../ssh.service";
-import { ThemeService, Theme } from "../theme.service";
+import { SshService } from "../services/ssh.service";
+import { ThemeService, Theme } from "../services/theme.service";
 
 /**
  * An xterm.js terminal bound to one SSH session. Streams shell output in,

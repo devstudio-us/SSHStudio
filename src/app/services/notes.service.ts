@@ -1,6 +1,6 @@
 import { Injectable, signal } from "@angular/core";
 import { invoke } from "@tauri-apps/api/core";
-import { Note, NewNote } from "./note.model";
+import { Note, NewNote } from "../models/note.model";
 
 /** CRUD over the notes Tauri commands, with the list held in a signal. */
 @Injectable({ providedIn: "root" })

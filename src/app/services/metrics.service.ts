@@ -1,7 +1,7 @@
 import { Injectable } from "@angular/core";
 import { invoke } from "@tauri-apps/api/core";
 import { listen, UnlistenFn } from "@tauri-apps/api/event";
-import { HostMetrics } from "./metrics.model";
+import { HostMetrics } from "../models/metrics.model";
 
 /** Wraps the metrics Tauri commands and the per-host `metrics-<id>` event. */
 @Injectable({ providedIn: "root" })
