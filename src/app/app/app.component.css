@@ -462,6 +462,13 @@ button.ghost:hover {
   color: var(--text-muted);
 }
 
+/* Caption row: label text plus its required/optional marker on one line. */
+.cap {
+  display: flex;
+  align-items: baseline;
+  gap: 0.3rem;
+}
+
 .hint {
   font-weight: 400;
   color: var(--text-faint);
@@ -469,7 +476,8 @@ button.ghost:hover {
 
 .req {
   color: var(--danger);
-  font-weight: 600;
+  font-weight: 700;
+  line-height: 1;
 }
 
 .form-hint {

@@ -221,33 +221,33 @@
       <h2>{{ editingHostId() ? "Edit host" : "Add host" }}</h2>
       <form class="host-form" (submit)="$event.preventDefault(); saveHost()">
         <label>
-          Name <span class="req">*</span>
+          <span class="cap">Name<span class="req">*</span></span>
           <input name="name" [(ngModel)]="form.name" placeholder="my-server" required />
         </label>
         <label>
-          Hostname / IP <span class="req">*</span>
+          <span class="cap">Hostname / IP<span class="req">*</span></span>
           <input name="hostname" [(ngModel)]="form.hostname" placeholder="example.com or 192.168.1.10" required />
         </label>
         <div class="row">
           <label class="grow">
-            User <span class="req">*</span>
+            <span class="cap">User<span class="req">*</span></span>
             <input name="user" [(ngModel)]="form.user" placeholder="root" required />
           </label>
           <label class="port">
-            Port <span class="req">*</span>
+            <span class="cap">Port<span class="req">*</span></span>
             <input name="port" type="number" min="1" max="65535" [(ngModel)]="form.port" required />
           </label>
         </div>
         <label>
-          Identity file <span class="hint">(optional)</span>
+          <span class="cap">Identity file<span class="hint">(optional)</span></span>
           <input name="identity_file" [(ngModel)]="form.identity_file" placeholder="~/.ssh/id_ed25519" />
         </label>
         <label>
-          Tags <span class="hint">(comma-separated)</span>
+          <span class="cap">Tags<span class="hint">(comma-separated)</span></span>
           <input name="tags" [(ngModel)]="form.tags" placeholder="prod, web" />
         </label>
         <label>
-          Notes
+          <span class="cap">Notes</span>
           <textarea name="notes" rows="3" [(ngModel)]="form.notes"></textarea>
         </label>
         @if (!hostFormValid()) {
@@ -297,11 +297,11 @@
       <h2>{{ editingNoteId() ? "Edit note" : "New note" }}</h2>
       <form class="host-form" (submit)="$event.preventDefault(); saveNote()">
         <label>
-          Name <span class="req">*</span>
+          <span class="cap">Name<span class="req">*</span></span>
           <input name="note-name" [(ngModel)]="noteForm.name" placeholder="Restart web server" required />
         </label>
         <label>
-          Scope
+          <span class="cap">Scope</span>
           <app-select
             [options]="noteScopeOptions()"
             [value]="noteForm.hostId"
@@ -309,15 +309,15 @@
           />
         </label>
         <label>
-          Command <span class="hint">(runnable)</span>
+          <span class="cap">Command<span class="hint">(runnable)</span></span>
           <textarea name="note-command" rows="3" [(ngModel)]="noteForm.command" placeholder="sudo systemctl restart nginx"></textarea>
         </label>
         <label>
-          Text <span class="hint">(note / description)</span>
+          <span class="cap">Text<span class="hint">(note / description)</span></span>
           <textarea name="note-text" rows="3" [(ngModel)]="noteForm.text"></textarea>
         </label>
         <label>
-          Tags <span class="hint">(comma-separated)</span>
+          <span class="cap">Tags<span class="hint">(comma-separated)</span></span>
           <input name="note-tags" [(ngModel)]="noteForm.tags" placeholder="deploy, web" />
         </label>
         @if (!noteFormValid()) {
