@@ -1,0 +1,66 @@
+<header class="dash-head">
+  <div class="dash-title">
+    <h1>Dashboard</h1>
+    <p>Live metrics for your servers.</p>
+  </div>
+
+  <div class="dash-controls">
+    @if (searchOpen()) {
+      <div class="dash-search">
+        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" />
+        </svg>
+        <input
+          #searchRef
+          type="search"
+          placeholder="Search servers…"
+          [value]="query()"
+          (input)="query.set(value($event))"
+          (blur)="onSearchBlur()"
+          (keydown.escape)="collapseSearch()"
+        />
+      </div>
+    } @else {
+      <button class="ctrl-icon" type="button" (click)="openSearch()" title="Search servers" aria-label="Search servers">
+        <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" />
+        </svg>
+      </button>
+    }
+    <button class="primary add-host" type="button" (click)="addHost.emit()">
+      <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14" /></svg>
+      Add host
+    </button>
+  </div>
+</header>
+
+@if (hosts().length === 0) {
+  <div class="empty-state">
+    <span class="es-icon">
+      <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="3" y="3" width="7" height="9" rx="1" />
+        <rect x="14" y="3" width="7" height="5" rx="1" />
+        <rect x="14" y="12" width="7" height="9" rx="1" />
+        <rect x="3" y="16" width="7" height="5" rx="1" />
+      </svg>
+    </span>
+    <h2>No metrics yet</h2>
+    <p>Connect to a host from the sidebar and its live CPU, memory, disk, load and uptime will appear here.</p>
+  </div>
+} @else if (filtered().length === 0) {
+  <p class="no-match">No servers match “{{ query() }}”.</p>
+} @else {
+  <div class="dash-grid">
+    @for (host of filtered(); track host.id) {
+      <app-metrics-card
+        [host]="host"
+        [monitored]="monitoredIds().has(host.id)"
+        (connect)="connect.emit($event)"
+        (openTerminal)="openTerminal.emit($event)"
+        (addNote)="addNote.emit($event)"
+        (edit)="edit.emit($event)"
+        (remove)="remove.emit($event)"
+      />
+    }
+  </div>
+}

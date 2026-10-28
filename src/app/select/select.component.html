@@ -1,0 +1,34 @@
+<button
+  type="button"
+  class="trigger"
+  [class.open]="open()"
+  (click)="toggle()"
+  [attr.aria-expanded]="open()"
+>
+  <span class="label">{{ selectedLabel() }}</span>
+  <svg class="chev" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="m6 9 6 6 6-6" />
+  </svg>
+</button>
+
+@if (open()) {
+  <div class="panel" role="listbox">
+    @for (opt of options(); track opt.value; let i = $index) {
+      <button
+        type="button"
+        class="opt"
+        role="option"
+        [class.selected]="opt.value === value()"
+        [class.active]="i === highlighted()"
+        [attr.aria-selected]="opt.value === value()"
+        (click)="choose(opt)"
+        (mouseenter)="highlighted.set(i)"
+      >
+        <span class="opt-label">{{ opt.label }}</span>
+        @if (opt.value === value()) {
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5" /></svg>
+        }
+      </button>
+    }
+  </div>
+}

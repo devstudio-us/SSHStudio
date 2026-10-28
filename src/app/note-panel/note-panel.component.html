@@ -1,0 +1,71 @@
+@if (collapsed()) {
+  <button class="rail" type="button" (click)="collapsed.set(false)" title="Show notes">
+    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M15 18l-6-6 6-6" />
+    </svg>
+    <span class="rail-text">Notes</span>
+  </button>
+} @else {
+  <div class="panel">
+    <header class="panel-head">
+      <span>Notes</span>
+      <button class="mini" type="button" (click)="collapsed.set(true)" title="Collapse">
+        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M9 6l6 6-6 6" />
+        </svg>
+      </button>
+    </header>
+
+    <div class="split">
+      <section class="pane">
+        <div class="sec-head">
+          <span>Global</span>
+          <button class="mini" type="button" (click)="add.emit(null)" title="Add global note">+</button>
+        </div>
+        <div class="pane-scroll">
+          @for (note of globalNotes(); track note.id) {
+            <ng-container [ngTemplateOutlet]="row" [ngTemplateOutletContext]="{ $implicit: note }" />
+          } @empty {
+            <p class="none">No global notes.</p>
+          }
+        </div>
+      </section>
+
+      <section class="pane">
+        <div class="sec-head">
+          <span>{{ host().name || host().hostname }}</span>
+          <button class="mini" type="button" (click)="add.emit(host().id)" title="Add note for this host">+</button>
+        </div>
+        <div class="pane-scroll">
+          @for (note of hostNotes(); track note.id) {
+            <ng-container [ngTemplateOutlet]="row" [ngTemplateOutletContext]="{ $implicit: note }" />
+          } @empty {
+            <p class="none">No notes for this host.</p>
+          }
+        </div>
+      </section>
+    </div>
+  </div>
+}
+
+<ng-template #row let-note>
+  <div class="note">
+    <div class="note-head">
+      <span class="note-name">{{ note.name || note.command || note.text }}</span>
+    </div>
+    @if (note.command) {
+      <code class="cmd">{{ note.command }}</code>
+    } @else if (note.text) {
+      <p class="text">{{ note.text }}</p>
+    }
+    <div class="row-actions">
+      @if (note.command) {
+        <button class="run" type="button" (click)="run.emit(note)" title="Run">▶</button>
+      }
+      <button type="button" (click)="copy(note)" title="Copy">
+        {{ copiedId() === note.id ? "✓" : "⧉" }}
+      </button>
+      <button type="button" (click)="edit.emit(note)" title="Edit">✎</button>
+    </div>
+  </div>
+</ng-template>

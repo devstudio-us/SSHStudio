@@ -12,8 +12,8 @@ import {
 import { Terminal, ITheme } from "@xterm/xterm";
 import { FitAddon } from "@xterm/addon-fit";
 import { UnlistenFn } from "@tauri-apps/api/event";
-import { SshService } from "./ssh.service";
-import { ThemeService, Theme } from "./theme.service";
+import { SshService } from "../ssh.service";
+import { ThemeService, Theme } from "../theme.service";
 
 /**
  * An xterm.js terminal bound to one SSH session. Streams shell output in,
@@ -22,23 +22,8 @@ import { ThemeService, Theme } from "./theme.service";
  */
 @Component({
   selector: "app-terminal",
-  template: `<div #host class="xterm-host"></div>`,
-  styles: [
-    `
-      :host {
-        display: block;
-        width: 100%;
-        height: 100%;
-      }
-      /* No padding here: FitAddon measures this element, and padding on the
-       * element xterm opens into makes it overcount rows and clip the last
-       * line. Insets live on the .terminal-slot wrapper instead. */
-      .xterm-host {
-        width: 100%;
-        height: 100%;
-      }
-    `,
-  ],
+  templateUrl: "./terminal.component.html",
+  styleUrl: "./terminal.component.css",
 })
 export class TerminalComponent implements AfterViewInit, OnDestroy {
   readonly sessionId = input.required<string>();
