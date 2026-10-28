@@ -316,7 +316,23 @@ export class AppComponent implements OnInit {
     this.showHostForm.set(false);
   }
 
+  /** Name, hostname and user must be filled and the port a valid 1–65535;
+   * the identity file stays optional (password auth is still supported). */
+  hostFormValid(): boolean {
+    const f = this.form;
+    const port = Number(f.port);
+    return (
+      f.name.trim().length > 0 &&
+      f.hostname.trim().length > 0 &&
+      f.user.trim().length > 0 &&
+      Number.isInteger(port) &&
+      port >= 1 &&
+      port <= 65535
+    );
+  }
+
   async saveHost(): Promise<void> {
+    if (!this.hostFormValid()) return;
     this.error.set("");
     const identity = this.form.identity_file.trim();
     const fields = {
@@ -385,7 +401,17 @@ export class AppComponent implements OnInit {
     this.showNoteForm.set(false);
   }
 
+  /** A note needs a name and at least one of command or text. */
+  noteFormValid(): boolean {
+    const f = this.noteForm;
+    return (
+      f.name.trim().length > 0 &&
+      (f.command.trim().length > 0 || f.text.trim().length > 0)
+    );
+  }
+
   async saveNote(): Promise<void> {
+    if (!this.noteFormValid()) return;
     this.error.set("");
     const fields = {
       name: this.noteForm.name.trim(),

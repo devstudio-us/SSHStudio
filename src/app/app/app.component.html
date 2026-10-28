@@ -221,25 +221,25 @@
       <h2>{{ editingHostId() ? "Edit host" : "Add host" }}</h2>
       <form class="host-form" (submit)="$event.preventDefault(); saveHost()">
         <label>
-          Name
-          <input name="name" [(ngModel)]="form.name" placeholder="my-server" />
+          Name <span class="req">*</span>
+          <input name="name" [(ngModel)]="form.name" placeholder="my-server" required />
         </label>
         <label>
-          Hostname / IP
+          Hostname / IP <span class="req">*</span>
           <input name="hostname" [(ngModel)]="form.hostname" placeholder="example.com or 192.168.1.10" required />
         </label>
         <div class="row">
           <label class="grow">
-            User
-            <input name="user" [(ngModel)]="form.user" placeholder="root" />
+            User <span class="req">*</span>
+            <input name="user" [(ngModel)]="form.user" placeholder="root" required />
           </label>
           <label class="port">
-            Port
-            <input name="port" type="number" min="1" max="65535" [(ngModel)]="form.port" />
+            Port <span class="req">*</span>
+            <input name="port" type="number" min="1" max="65535" [(ngModel)]="form.port" required />
           </label>
         </div>
         <label>
-          Identity file
+          Identity file <span class="hint">(optional)</span>
           <input name="identity_file" [(ngModel)]="form.identity_file" placeholder="~/.ssh/id_ed25519" />
         </label>
         <label>
@@ -250,9 +250,12 @@
           Notes
           <textarea name="notes" rows="3" [(ngModel)]="form.notes"></textarea>
         </label>
+        @if (!hostFormValid()) {
+          <p class="form-hint">Name, hostname, user and a valid port (1–65535) are required.</p>
+        }
         <div class="modal-actions">
           <button type="button" class="ghost" (click)="closeHostForm()">Cancel</button>
-          <button class="primary" type="submit" [disabled]="!form.hostname.trim()">
+          <button class="primary" type="submit" [disabled]="!hostFormValid()">
             {{ editingHostId() ? "Save changes" : "Add host" }}
           </button>
         </div>
@@ -294,8 +297,8 @@
       <h2>{{ editingNoteId() ? "Edit note" : "New note" }}</h2>
       <form class="host-form" (submit)="$event.preventDefault(); saveNote()">
         <label>
-          Name
-          <input name="note-name" [(ngModel)]="noteForm.name" placeholder="Restart web server" />
+          Name <span class="req">*</span>
+          <input name="note-name" [(ngModel)]="noteForm.name" placeholder="Restart web server" required />
         </label>
         <label>
           Scope
@@ -317,13 +320,12 @@
           Tags <span class="hint">(comma-separated)</span>
           <input name="note-tags" [(ngModel)]="noteForm.tags" placeholder="deploy, web" />
         </label>
+        @if (!noteFormValid()) {
+          <p class="form-hint">A name and either a command or text are required.</p>
+        }
         <div class="modal-actions">
           <button type="button" class="ghost" (click)="closeNoteForm()">Cancel</button>
-          <button
-            class="primary"
-            type="submit"
-            [disabled]="!noteForm.command.trim() && !noteForm.text.trim()"
-          >
+          <button class="primary" type="submit" [disabled]="!noteFormValid()">
             {{ editingNoteId() ? "Save changes" : "Add note" }}
           </button>
         </div>

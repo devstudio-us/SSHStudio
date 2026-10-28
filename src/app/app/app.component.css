@@ -467,6 +467,17 @@ button.ghost:hover {
   color: var(--text-faint);
 }
 
+.req {
+  color: var(--danger);
+  font-weight: 600;
+}
+
+.form-hint {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--text-faint);
+}
+
 .row {
   display: flex;
   gap: 0.85rem;
