@@ -132,14 +132,14 @@ export class TerminalComponent implements AfterViewInit, OnDestroy {
       ? {
           background: "#0e1016",
           foreground: "#e7e9ee",
-          cursor: "#6366f1",
-          selectionBackground: "#33415599",
+          cursor: "#ff8b33",
+          selectionBackground: "#ff8b3340",
         }
       : {
           background: "#ffffff",
           foreground: "#171a1f",
-          cursor: "#4f46e5",
-          selectionBackground: "#4f46e533",
+          cursor: "#ed7a1e",
+          selectionBackground: "#ff8b3333",
         };
   }
 }

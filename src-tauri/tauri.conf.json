@@ -12,7 +12,7 @@
   "app": {
     "windows": [
       {
-        "title": "sshmanger",
+        "title": "SSHStudio",
         "width": 800,
         "height": 600
       }
