@@ -1,4 +1,11 @@
-import { Component, computed, input, output, signal } from "@angular/core";
+import {
+  Component,
+  computed,
+  input,
+  linkedSignal,
+  output,
+  signal,
+} from "@angular/core";
 import { NgTemplateOutlet } from "@angular/common";
 import { Note } from "../models/note.model";
 import { Host } from "../models/host.model";
@@ -24,10 +31,18 @@ export class NotePanelComponent {
   readonly add = output<string | null>();
 
   readonly collapsed = signal(false);
-  /** Per-section collapse state for the panel's two halves. */
-  readonly hostCollapsed = signal(false);
-  readonly globalCollapsed = signal(false);
   readonly copiedId = signal<string | null>(null);
+
+  /** A section with no notes starts collapsed; a non-empty one starts open.
+   * linkedSignal keeps that as the default while still allowing a manual
+   * toggle — the default is re-applied only when the section's emptiness
+   * flips (e.g. its first note is added or its last one removed). */
+  private readonly hostEmpty = computed(() => this.hostNotes().length === 0);
+  private readonly globalEmpty = computed(
+    () => this.globalNotes().length === 0,
+  );
+  readonly hostCollapsed = linkedSignal(() => this.hostEmpty());
+  readonly globalCollapsed = linkedSignal(() => this.globalEmpty());
 
   readonly globalNotes = computed(() =>
     this.notes().filter((n) => !n.host_id),
