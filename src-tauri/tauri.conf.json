@@ -1,6 +1,6 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "sshmanger",
+  "productName": "SSHStudio",
   "version": "0.1.0",
   "identifier": "com.devstudio.sshmanger",
   "build": {
