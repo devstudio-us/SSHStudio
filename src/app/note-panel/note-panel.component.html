@@ -17,23 +17,17 @@
     </header>
 
     <div class="split">
-      <section class="pane">
+      <section class="pane" [class.collapsed]="hostCollapsed()">
         <div class="sec-head">
-          <span>Global</span>
-          <button class="mini" type="button" (click)="add.emit(null)" title="Add global note">+</button>
-        </div>
-        <div class="pane-scroll">
-          @for (note of globalNotes(); track note.id) {
-            <ng-container [ngTemplateOutlet]="row" [ngTemplateOutletContext]="{ $implicit: note }" />
-          } @empty {
-            <p class="none">No global notes.</p>
-          }
-        </div>
-      </section>
-
-      <section class="pane">
-        <div class="sec-head">
-          <span>{{ host().name || host().hostname }}</span>
+          <button
+            class="sec-toggle"
+            type="button"
+            (click)="hostCollapsed.set(!hostCollapsed())"
+            [attr.aria-expanded]="!hostCollapsed()"
+          >
+            <svg class="chev" [class.closed]="hostCollapsed()" viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6" /></svg>
+            <span>{{ host().name || host().hostname }}</span>
+          </button>
           <button class="mini" type="button" (click)="add.emit(host().id)" title="Add note for this host">+</button>
         </div>
         <div class="pane-scroll">
@@ -41,6 +35,28 @@
             <ng-container [ngTemplateOutlet]="row" [ngTemplateOutletContext]="{ $implicit: note }" />
           } @empty {
             <p class="none">No notes for this host.</p>
+          }
+        </div>
+      </section>
+
+      <section class="pane" [class.collapsed]="globalCollapsed()">
+        <div class="sec-head">
+          <button
+            class="sec-toggle"
+            type="button"
+            (click)="globalCollapsed.set(!globalCollapsed())"
+            [attr.aria-expanded]="!globalCollapsed()"
+          >
+            <svg class="chev" [class.closed]="globalCollapsed()" viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6" /></svg>
+            <span>Global</span>
+          </button>
+          <button class="mini" type="button" (click)="add.emit(null)" title="Add global note">+</button>
+        </div>
+        <div class="pane-scroll">
+          @for (note of globalNotes(); track note.id) {
+            <ng-container [ngTemplateOutlet]="row" [ngTemplateOutletContext]="{ $implicit: note }" />
+          } @empty {
+            <p class="none">No global notes.</p>
           }
         </div>
       </section>

@@ -24,6 +24,9 @@ export class NotePanelComponent {
   readonly add = output<string | null>();
 
   readonly collapsed = signal(false);
+  /** Per-section collapse state for the panel's two halves. */
+  readonly hostCollapsed = signal(false);
+  readonly globalCollapsed = signal(false);
   readonly copiedId = signal<string | null>(null);
 
   readonly globalNotes = computed(() =>
