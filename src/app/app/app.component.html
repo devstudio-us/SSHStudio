@@ -52,13 +52,6 @@
         </svg>
         <span class="nav-label">Notes</span>
       </button>
-      <button type="button" title="Terminals" [class.active]="view() === 'terminals'" (click)="setView('terminals')">
-        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <rect x="2" y="3" width="20" height="18" rx="2" />
-          <path d="m6 8 3 3-3 3M12 14h5" />
-        </svg>
-        <span class="nav-label">Terminals</span>
-      </button>
     </nav>
 
     <div class="sidebar-head">
@@ -77,13 +70,16 @@
 
     <ul class="host-list">
       @for (host of hosts(); track host.id) {
-        <li class="host-item" (click)="openHost(host)" [title]="host.name || host.hostname">
+        <li class="host-item" (click)="focusOrOpenHost(host)" [title]="host.name || host.hostname">
           <div class="host-main">
             <span class="host-name">
               @if (hasLiveSession(host)) {
                 <span class="dot" title="Connected"></span>
               }
               {{ host.name || host.hostname }}
+              @if (liveSessionCount(host) >= 2) {
+                <span class="tab-count" title="{{ liveSessionCount(host) }} terminals open">({{ liveSessionCount(host) }})</span>
+              }
             </span>
             <span class="host-addr">{{ host.user ? host.user + "@" : "" }}{{ host.hostname }}:{{ host.port }}</span>
             @if (host.tags.length > 0) {
@@ -157,6 +153,9 @@
               <button class="tab-close" type="button" (click)="closeSession(session.id, $event)" aria-label="Close session">×</button>
             </div>
           }
+          <button class="tab-add" type="button" (click)="openAnotherForActive()" title="New terminal for this server" aria-label="New terminal">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14" /></svg>
+          </button>
         </div>
 
         <div class="term-body">
@@ -193,7 +192,7 @@
       [hosts]="hosts()"
       [monitoredIds]="connectedHostIds()"
       (connect)="connectForMetrics($event)"
-      (openTerminal)="focusOrOpenHost($event)"
+      (openTerminal)="openTerminalFor($event)"
       (addHost)="openAddForm()"
       (addNote)="openNoteForm($event)"
       (edit)="openEditForm($event)"
@@ -343,6 +342,21 @@
       <div class="modal-actions">
         <button type="button" class="ghost" (click)="confirmNo()">Cancel</button>
         <button type="button" class="btn-danger" (click)="confirmYes()">{{ confirm.confirmLabel }}</button>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- Open-terminal choice: new tab or switch to the existing one -->
+@if (terminalChoice(); as host) {
+  <div class="modal-overlay" (click)="cancelTerminalChoice()">
+    <div class="modal narrow" (click)="$event.stopPropagation()">
+      <h2>Open terminal</h2>
+      <p class="confirm-msg">“{{ host.name || host.hostname }}” already has a terminal open. Open another, or switch to the existing one?</p>
+      <div class="modal-actions">
+        <button type="button" class="ghost" (click)="cancelTerminalChoice()">Cancel</button>
+        <button type="button" class="ghost" (click)="chooseExistingTerminal()">Go to existing</button>
+        <button type="button" class="primary" (click)="chooseNewTerminal()">Open new</button>
       </div>
     </div>
   </div>

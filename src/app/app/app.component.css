@@ -233,6 +233,13 @@
   font-size: 0.92rem;
 }
 
+/* "(2)" badge when a host has more than one terminal open. */
+.tab-count {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--accent);
+}
+
 .dot {
   width: 7px;
   height: 7px;
@@ -421,6 +428,25 @@ button.ghost:hover {
 
 .tab-close:hover {
   color: var(--danger);
+}
+
+.tab-add {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 30px;
+  align-self: flex-end;
+  margin-bottom: 1px;
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+}
+
+.tab-add:hover {
+  color: var(--accent);
+  background-color: var(--surface-hover);
 }
 
 /* ---- Terminal area ---- */

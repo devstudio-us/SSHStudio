@@ -116,6 +116,9 @@ export class AppComponent implements OnInit {
   readonly runHostPicker = signal<string | null>(null);
 
   readonly confirmState = signal<ConfirmState | null>(null);
+  /** When set, the "open a new terminal or go to the existing one?" modal is
+   * shown for this host (which already has a live terminal). */
+  readonly terminalChoice = signal<Host | null>(null);
 
   async ngOnInit(): Promise<void> {
     await Promise.all([this.loadHosts(), this.loadNotes()]);
@@ -174,18 +177,56 @@ export class AppComponent implements OnInit {
     void this.openHost(host, undefined, false);
   }
 
-  /** Open this host's terminal: focus an existing live session if there is
+  /** Open this host's terminal: focus its most recent live session if there is
    * one, otherwise open a new one. Switches to the Terminals view. */
   focusOrOpenHost(host: Host): void {
-    const live = this.sessions().find(
-      (s) => s.host.id === host.id && !s.closed,
-    );
+    const live = [...this.sessions()]
+      .reverse()
+      .find((s) => s.host.id === host.id && !s.closed);
     if (live) {
       this.activeId.set(live.id);
       this.view.set("terminals");
     } else {
       void this.openHost(host);
     }
+  }
+
+  /** Number of live (not closed) terminals open for a host. */
+  liveSessionCount(host: Host): number {
+    return this.sessions().filter((s) => s.host.id === host.id && !s.closed)
+      .length;
+  }
+
+  /** Dashboard "open terminal" icon: if the host already has a live terminal,
+   * ask whether to open another or switch to it; otherwise open one directly. */
+  openTerminalFor(host: Host): void {
+    if (this.sessions().some((s) => s.host.id === host.id && !s.closed)) {
+      this.terminalChoice.set(host);
+    } else {
+      void this.openHost(host);
+    }
+  }
+
+  chooseNewTerminal(): void {
+    const host = this.terminalChoice();
+    this.terminalChoice.set(null);
+    if (host) void this.openHost(host);
+  }
+
+  chooseExistingTerminal(): void {
+    const host = this.terminalChoice();
+    this.terminalChoice.set(null);
+    if (host) this.focusOrOpenHost(host);
+  }
+
+  cancelTerminalChoice(): void {
+    this.terminalChoice.set(null);
+  }
+
+  /** Tab-bar "+": open another terminal for the active tab's server. */
+  openAnotherForActive(): void {
+    const host = this.activeHost();
+    if (host) void this.openHost(host);
   }
 
   /** Attempt a connection, prompting for a secret and retrying on the
