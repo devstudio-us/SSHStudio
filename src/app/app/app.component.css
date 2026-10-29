@@ -218,6 +218,12 @@
   background-color: var(--surface-hover);
 }
 
+/* The host whose terminal is currently active. */
+.host-item.active {
+  background-color: var(--accent-soft);
+  border-color: color-mix(in srgb, var(--accent) 35%, transparent);
+}
+
 .host-main {
   display: flex;
   flex-direction: column;
@@ -435,13 +441,14 @@ button.ghost:hover {
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  width: 30px;
-  align-self: flex-end;
-  margin-bottom: 1px;
+  width: 28px;
+  height: 28px;
+  align-self: center;
+  margin-left: 0.25rem;
   background: transparent;
   border: none;
   color: var(--text-muted);
-  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+  border-radius: 50%;
 }
 
 .tab-add:hover {
