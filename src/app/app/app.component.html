@@ -202,6 +202,7 @@
       [style.display]="view() === 'dashboard' ? 'block' : 'none'"
       [hosts]="hosts()"
       [monitoredIds]="connectedHostIds()"
+      [connectErrors]="connectErrors()"
       (connect)="connectForMetrics($event)"
       (openTerminal)="openTerminalFor($event)"
       (addHost)="openAddForm()"
@@ -250,7 +251,10 @@
         </div>
         <label>
           <span class="cap">Identity file<span class="hint">(optional)</span></span>
-          <input name="identity_file" [(ngModel)]="form.identity_file" placeholder="~/.ssh/id_ed25519" />
+          <div class="path-row">
+            <input name="identity_file" [(ngModel)]="form.identity_file" placeholder="~/.ssh/id_ed25519" />
+            <button type="button" class="ghost browse" (click)="browseIdentityFile()">Browse…</button>
+          </div>
         </label>
         <label>
           <span class="cap">Tags<span class="hint">(comma-separated)</span></span>

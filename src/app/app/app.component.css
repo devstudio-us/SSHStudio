@@ -513,6 +513,23 @@ button.ghost:hover {
   width: 96px;
 }
 
+/* Identity-file input paired with a "Browse…" button. */
+.path-row {
+  display: flex;
+  gap: 0.5rem;
+  align-items: stretch;
+}
+
+.path-row input {
+  flex: 1;
+  min-width: 0;
+}
+
+.path-row .browse {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
 .error {
   color: var(--danger);
   font-size: 0.85rem;

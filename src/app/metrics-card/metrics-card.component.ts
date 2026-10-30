@@ -29,6 +29,8 @@ export class MetricsCardComponent implements OnDestroy {
   readonly host = input.required<Host>();
   /** Whether this host is connected this session (so it can be polled). */
   readonly monitored = input<boolean>(false);
+  /** Last connection failure for this host, if any (shown in the idle state). */
+  readonly connectError = input<string | undefined>(undefined);
   readonly connect = output<Host>();
   readonly openTerminal = output<Host>();
   /** Emits this host's id to open the note form scoped to it. */

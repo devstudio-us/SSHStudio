@@ -55,6 +55,7 @@
       <app-metrics-card
         [host]="host"
         [monitored]="monitoredIds().has(host.id)"
+        [connectError]="connectErrors()[host.id]"
         (connect)="connect.emit($event)"
         (openTerminal)="openTerminal.emit($event)"
         (addNote)="addNote.emit($event)"

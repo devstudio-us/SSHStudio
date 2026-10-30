@@ -17,6 +17,7 @@
     "@angular/platform-browser": "^22.0.1",
     "@angular/router": "^22.0.1",
     "@tauri-apps/api": "^2",
+    "@tauri-apps/plugin-dialog": "^2.8.4",
     "@tauri-apps/plugin-opener": "^2",
     "@xterm/addon-fit": "^0.10.0",
     "@xterm/xterm": "^5.5.0",

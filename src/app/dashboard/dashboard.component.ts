@@ -23,6 +23,8 @@ export class DashboardComponent {
   readonly hosts = input.required<Host[]>();
   /** Host ids currently monitored (connected this session). */
   readonly monitoredIds = input.required<Set<string>>();
+  /** Last connection error per host id, shown on that host's card. */
+  readonly connectErrors = input<Record<string, string>>({});
 
   readonly connect = output<Host>();
   readonly openTerminal = output<Host>();

@@ -1,5 +1,6 @@
 import { Component, computed, inject, OnInit, signal } from "@angular/core";
 import { FormsModule } from "@angular/forms";
+import { open } from "@tauri-apps/plugin-dialog";
 import { HostsService } from "../services/hosts.service";
 import { ThemeService } from "../services/theme.service";
 import { SshService } from "../services/ssh.service";
@@ -99,6 +100,8 @@ export class AppComponent implements OnInit {
   readonly activeId = signal<string | null>(null);
   readonly connectingId = signal<string | null>(null);
   readonly error = signal<string>("");
+  /** Last connection error per host id, shown on that host's dashboard card. */
+  readonly connectErrors = signal<Record<string, string>>({});
 
   readonly showHostForm = signal(false);
   /** null = adding a new host; otherwise the id of the host being edited. */
@@ -161,6 +164,7 @@ export class AppComponent implements OnInit {
     switchView = true,
   ): Promise<void> {
     this.error.set("");
+    this.clearConnectError(host.id);
     this.connectingId.set(host.id);
     if (switchView) {
       this.view.set("terminals");
@@ -247,6 +251,7 @@ export class AppComponent implements OnInit {
       this.activeId.set(id);
       // Now eligible for metrics polling on the dashboard.
       this.connectedHostIds.update((set) => new Set(set).add(host.id));
+      this.clearConnectError(host.id);
     } catch (e) {
       const msg = String(e);
       const usesKey = !!host.identity_file && host.identity_file.length > 0;
@@ -275,9 +280,26 @@ export class AppComponent implements OnInit {
           await this.connectWith(host, pw, undefined, runAfter);
         }
       } else {
-        this.error.set(msg);
+        // A non-auth failure (host down, refused, timeout, bad key, …).
+        // Record it against this host so its dashboard card shows which
+        // server failed and why, and tag the global banner with the name.
+        this.setConnectError(host.id, msg);
+        this.error.set(`${host.name || host.hostname}: ${msg}`);
       }
     }
+  }
+
+  private setConnectError(hostId: string, msg: string): void {
+    this.connectErrors.update((map) => ({ ...map, [hostId]: msg }));
+  }
+
+  private clearConnectError(hostId: string): void {
+    this.connectErrors.update((map) => {
+      if (!(hostId in map)) return map;
+      const next = { ...map };
+      delete next[hostId];
+      return next;
+    });
   }
 
   setActive(id: string): void {
@@ -355,6 +377,19 @@ export class AppComponent implements OnInit {
 
   closeHostForm(): void {
     this.showHostForm.set(false);
+  }
+
+  /** Open the native file picker and put the chosen key file's path into the
+   * form. `open` returns the selected path (string), or null if cancelled. */
+  async browseIdentityFile(): Promise<void> {
+    const selected = await open({
+      multiple: false,
+      directory: false,
+      title: "Select private key",
+    });
+    if (typeof selected === "string") {
+      this.form.identity_file = selected;
+    }
   }
 
   /** Name, hostname and user must be filled and the port a valid 1–65535;
