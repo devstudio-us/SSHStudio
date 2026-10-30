@@ -15,12 +15,14 @@ import { TerminalComponent } from "../terminal/terminal.component";
 import { DashboardComponent } from "../dashboard/dashboard.component";
 import { NotesManagerComponent } from "../notes-manager/notes-manager.component";
 import { NotePanelComponent } from "../note-panel/note-panel.component";
+import { SftpBrowserComponent } from "../sftp-browser/sftp-browser.component";
 import { SelectComponent, SelectOption } from "../select/select.component";
 import { NotesService } from "../services/notes.service";
+import { SftpService } from "../services/sftp.service";
 import { Host } from "../models/host.model";
 import { Note } from "../models/note.model";
 
-type View = "terminals" | "dashboard" | "notes";
+type View = "terminals" | "dashboard" | "notes" | "files";
 
 /** An open (or recently closed) SSH session shown as a terminal tab. */
 interface Session {
@@ -74,6 +76,7 @@ interface ConfirmState {
     DashboardComponent,
     NotesManagerComponent,
     NotePanelComponent,
+    SftpBrowserComponent,
     SelectComponent,
   ],
   templateUrl: "./app.component.html",
@@ -84,6 +87,7 @@ export class AppComponent implements OnInit {
   private readonly themeService = inject(ThemeService);
   private readonly ssh = inject(SshService);
   private readonly notesService = inject(NotesService);
+  private readonly sftp = inject(SftpService);
   private readonly cdr = inject(ChangeDetectorRef);
 
   readonly hosts = this.hostsService.hosts;
@@ -91,6 +95,8 @@ export class AppComponent implements OnInit {
   readonly theme = this.themeService.theme;
 
   readonly view = signal<View>("dashboard");
+  /** The host whose files are shown in the SFTP (Files) view, if any. */
+  readonly sftpHost = signal<Host | null>(null);
   /** Host ids with at least one live terminal session — the single source of
    * truth for "connected". Drives both the sidebar list and the dashboard's
    * monitored state, so they can never disagree. Closing a host's last tab (or
@@ -338,12 +344,29 @@ export class AppComponent implements OnInit {
     );
   }
 
+  /** Open the two-pane SFTP (Files) browser for a connected host. */
+  openSftp(host: Host, event?: Event): void {
+    event?.stopPropagation();
+    this.sftpHost.set(host);
+    this.view.set("files");
+  }
+
+  /** Close the Files view and return to the Dashboard. */
+  closeSftp(): void {
+    this.view.set("dashboard");
+  }
+
   /** Disconnect a host from the sidebar: close all its terminal sessions, so it
    * drops off the "Connected hosts" list and reverts to idle on the Dashboard
    * (metrics stop). Does not delete the saved host (that lives on the
    * Dashboard). */
   async disconnectHost(host: Host, event?: Event): Promise<void> {
     event?.stopPropagation();
+    // Also close any SFTP session for this host.
+    void this.sftp.disconnect(host.id);
+    if (this.sftpHost()?.id === host.id && this.view() === "files") {
+      this.view.set("dashboard");
+    }
     const ids = this.sessions()
       .filter((s) => s.host.id === host.id)
       .map((s) => s.id);

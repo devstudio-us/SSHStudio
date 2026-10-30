@@ -1,0 +1,160 @@
+<header class="sftp-head">
+  <div class="sftp-title">
+    <h1>Files</h1>
+    <span class="sub">{{ host().name || host().hostname }}</span>
+  </div>
+  <button class="ghost" type="button" (click)="close.emit()">Close</button>
+</header>
+
+<div class="panes">
+  <!-- Local pane -->
+  <section
+    class="pane"
+    [class.drop]="dragSide() === 'remote'"
+    (dragover)="onDragOver('local', $event)"
+    (drop)="onDrop('local', $event)"
+  >
+    <div class="pane-head">
+      <div class="pane-label">
+        <span class="where">This computer</span>
+        <span class="path" [title]="localPath()">{{ localPath() }}</span>
+      </div>
+      <div class="pane-tools">
+        <button class="tool" type="button" (click)="up('local')" title="Up">↑</button>
+        <button class="tool" type="button" (click)="refresh('local')" title="Refresh">⟳</button>
+      </div>
+    </div>
+    @if (localErr()) {
+      <p class="pane-err">{{ localErr() }}</p>
+    }
+    <ul class="file-list" (click)="clearSel('local')">
+      @for (e of localEntries(); track e.path) {
+        <li
+          class="file-row"
+          [class.sel]="localSel().has(e.path)"
+          draggable="true"
+          (dragstart)="onDragStart('local', e)"
+          (click)="toggle('local', e, $event)"
+          (dblclick)="openEntry('local', e)"
+        >
+          <span class="ico">{{ e.is_dir ? "📁" : "📄" }}</span>
+          <span class="nm" [title]="e.name">{{ e.name }}</span>
+          <span class="sz">{{ e.is_dir ? "" : fmtSize(e.size) }}</span>
+          <span class="dt">{{ fmtDate(e.modified) }}</span>
+        </li>
+      } @empty {
+        <li class="empty-row">{{ localBusy() ? "Loading…" : "Empty folder" }}</li>
+      }
+    </ul>
+  </section>
+
+  <!-- Transfer controls -->
+  <div class="xfer-mid">
+    <button
+      class="xfer"
+      type="button"
+      [disabled]="selectedCount('local') === 0"
+      (click)="upload()"
+      title="Upload selected to the server"
+    >
+      Upload →
+    </button>
+    <button
+      class="xfer"
+      type="button"
+      [disabled]="selectedCount('remote') === 0"
+      (click)="download()"
+      title="Download selected to this computer"
+    >
+      ← Download
+    </button>
+    <p class="hint">or drag between panes</p>
+  </div>
+
+  <!-- Remote pane -->
+  <section
+    class="pane"
+    [class.drop]="dragSide() === 'local'"
+    (dragover)="onDragOver('remote', $event)"
+    (drop)="onDrop('remote', $event)"
+  >
+    <div class="pane-head">
+      <div class="pane-label">
+        <span class="where">{{ host().name || host().hostname }}</span>
+        <span class="path" [title]="remotePath()">{{ remotePath() }}</span>
+      </div>
+      <div class="pane-tools">
+        <button class="tool" type="button" (click)="up('remote')" title="Up">↑</button>
+        <button class="tool" type="button" (click)="refresh('remote')" title="Refresh">⟳</button>
+        <button class="tool" type="button" (click)="newFolder()" title="New folder">＋</button>
+        <button class="tool" type="button" [disabled]="selectedCount('remote') !== 1" (click)="renameSelected()" title="Rename">✎</button>
+        <button class="tool danger" type="button" [disabled]="selectedCount('remote') === 0" (click)="deleteSelected()" title="Delete">🗑</button>
+      </div>
+    </div>
+    @if (remoteErr()) {
+      <p class="pane-err">{{ remoteErr() }}</p>
+    }
+    <ul class="file-list" (click)="clearSel('remote')">
+      @for (e of remoteEntries(); track e.path) {
+        <li
+          class="file-row"
+          [class.sel]="remoteSel().has(e.path)"
+          draggable="true"
+          (dragstart)="onDragStart('remote', e)"
+          (click)="toggle('remote', e, $event)"
+          (dblclick)="openEntry('remote', e)"
+        >
+          <span class="ico">{{ e.is_dir ? "📁" : "📄" }}</span>
+          <span class="nm" [title]="e.name">{{ e.name }}</span>
+          <span class="sz">{{ e.is_dir ? "" : fmtSize(e.size) }}</span>
+          <span class="dt">{{ fmtDate(e.modified) }}</span>
+        </li>
+      } @empty {
+        <li class="empty-row">{{ remoteBusy() ? "Loading…" : "Empty folder" }}</li>
+      }
+    </ul>
+  </section>
+</div>
+
+<!-- Transfers -->
+@if (transfers().length > 0) {
+  <div class="xfers">
+    @for (t of transfers(); track t.id) {
+      <div class="xfer-row" [class.err]="!!t.error">
+        <span class="xfer-dir">{{ t.dir === "up" ? "↑" : "↓" }}</span>
+        <span class="xfer-name" [title]="t.name">{{ t.name }}</span>
+        @if (t.error) {
+          <span class="xfer-msg">{{ t.error }}</span>
+        } @else {
+          <div class="xfer-track"><div class="xfer-fill" [style.width.%]="pct(t)"></div></div>
+          <span class="xfer-pct">{{ t.done ? "Done" : pctLabel(t) }}</span>
+        }
+        <button class="xfer-x" type="button" (click)="dismissTransfer(t.id)" aria-label="Dismiss">×</button>
+      </div>
+    }
+  </div>
+}
+
+<!-- Name / confirm modal -->
+@if (ask(); as a) {
+  <div class="modal-overlay">
+    <div class="modal narrow">
+      <h2>{{ a.title }}</h2>
+      @if (!a.confirm) {
+        <input
+          class="ask-input"
+          type="text"
+          [(ngModel)]="askValue"
+          (keydown.enter)="confirmAsk()"
+          autofocus
+        />
+      }
+      <div class="modal-actions">
+        <button type="button" class="ghost" (click)="cancelAsk()">Cancel</button>
+        <button type="button" [class]="a.confirm ? 'btn-danger' : 'primary'" (click)="confirmAsk()">
+          {{ a.okLabel }}
+        </button>
+      </div>
+    </div>
+  </div>
+}

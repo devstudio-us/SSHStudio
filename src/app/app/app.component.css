@@ -161,7 +161,8 @@
 }
 
 .view-dashboard,
-.view-notes {
+.view-notes,
+.view-files {
   flex: 1;
   min-height: 0;
 }
