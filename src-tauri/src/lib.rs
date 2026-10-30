@@ -1,6 +1,7 @@
 mod hosts;
 mod metrics;
 mod notes;
+mod sftp;
 mod ssh;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -10,6 +11,7 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .manage(ssh::SessionManager::new())
         .manage(metrics::MetricsManager::new())
+        .manage(sftp::SftpManager::new())
         .invoke_handler(tauri::generate_handler![
             hosts::list_hosts,
             hosts::add_host,
@@ -26,6 +28,16 @@ pub fn run() {
             notes::add_note,
             notes::update_note,
             notes::delete_note,
+            sftp::sftp_home,
+            sftp::sftp_list,
+            sftp::sftp_mkdir,
+            sftp::sftp_rename,
+            sftp::sftp_delete,
+            sftp::sftp_download,
+            sftp::sftp_upload,
+            sftp::sftp_disconnect,
+            sftp::local_home,
+            sftp::local_list,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
