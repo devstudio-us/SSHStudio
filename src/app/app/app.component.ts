@@ -332,6 +332,27 @@ export class AppComponent implements OnInit {
     );
   }
 
+  /** Disconnect a host from the sidebar: close all its terminal sessions, so
+   * it drops off the "Connected hosts" list. Does not delete the saved host
+   * (that lives on the Dashboard) and leaves dashboard monitoring untouched. */
+  async disconnectHost(host: Host, event?: Event): Promise<void> {
+    event?.stopPropagation();
+    const ids = this.sessions()
+      .filter((s) => s.host.id === host.id)
+      .map((s) => s.id);
+    for (const id of ids) {
+      try {
+        await this.ssh.disconnect(id);
+      } catch {
+        // already gone
+      }
+    }
+    this.sessions.update((list) => list.filter((s) => s.host.id !== host.id));
+    if (!this.sessions().some((s) => s.id === this.activeId())) {
+      this.activeId.set(this.sessions()[0]?.id ?? null);
+    }
+  }
+
   async closeSession(id: string, event?: Event): Promise<void> {
     event?.stopPropagation();
     try {
