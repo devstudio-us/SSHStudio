@@ -31,12 +31,32 @@ jobs:
         with:
           script: |
             const tag = context.ref.replace('refs/tags/', '');
+            const v = tag.replace(/^v/, '');
+            const body = [
+              '## Downloads',
+              '',
+              'Pick the file for your operating system:',
+              '',
+              '| Platform | File |',
+              '| --- | --- |',
+              `| 🪟 **Windows** | \`SSHStudio_${v}_x64_en-US.msi\` (installer) or \`SSHStudio_${v}_x64-setup.exe\` |`,
+              `| 🍎 **macOS — Apple Silicon** (M1/M2/M3/M4) | \`SSHStudio_${v}_aarch64.dmg\` |`,
+              `| 🍎 **macOS — Intel** | \`SSHStudio_${v}_x64.dmg\` |`,
+              `| 🐧 **Linux — Debian / Ubuntu** | \`SSHStudio_${v}_amd64.deb\` |`,
+              `| 🐧 **Linux — Fedora / RHEL** | \`SSHStudio-${v}-1.x86_64.rpm\` |`,
+              `| 🐧 **Linux — any distro (portable)** | \`SSHStudio_${v}_amd64.AppImage\` |`,
+              '',
+              '### First-launch notes',
+              '- **macOS** is not notarized yet — right-click the app → **Open**, or run `xattr -dr com.apple.quarantine /Applications/SSHStudio.app`.',
+              '- **Windows** may show SmartScreen — click **More info → Run anyway**.',
+              '- **Linux AppImage** — `chmod +x` the file, then run it.',
+            ].join('\n');
             const { data } = await github.rest.repos.createRelease({
               owner: context.repo.owner,
               repo: context.repo.repo,
               tag_name: tag,
               name: `SSHStudio ${tag}`,
-              body: 'Download the installer for your platform below.',
+              body,
               draft: true,
               prerelease: false,
             });

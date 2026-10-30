@@ -1,4 +1,11 @@
-import { Component, computed, inject, OnInit, signal } from "@angular/core";
+import {
+  ChangeDetectorRef,
+  Component,
+  computed,
+  inject,
+  OnInit,
+  signal,
+} from "@angular/core";
 import { FormsModule } from "@angular/forms";
 import { open } from "@tauri-apps/plugin-dialog";
 import { HostsService } from "../services/hosts.service";
@@ -77,6 +84,7 @@ export class AppComponent implements OnInit {
   private readonly themeService = inject(ThemeService);
   private readonly ssh = inject(SshService);
   private readonly notesService = inject(NotesService);
+  private readonly cdr = inject(ChangeDetectorRef);
 
   readonly hosts = this.hostsService.hosts;
   readonly notes = this.notesService.notes;
@@ -389,6 +397,9 @@ export class AppComponent implements OnInit {
     });
     if (typeof selected === "string") {
       this.form.identity_file = selected;
+      // The native dialog resolves outside Angular; this app is zoneless, so
+      // nudge change detection to refresh the input immediately.
+      this.cdr.markForCheck();
     }
   }
 
