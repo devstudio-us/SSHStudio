@@ -7,6 +7,7 @@ import {
   input,
   output,
   signal,
+  untracked,
 } from "@angular/core";
 import { UnlistenFn } from "@tauri-apps/api/event";
 import { MetricsService } from "../services/metrics.service";
@@ -44,7 +45,6 @@ export class MetricsCardComponent implements OnDestroy {
   readonly metrics = signal<HostMetrics | null>(null);
 
   private unlisten?: UnlistenFn;
-  private started = false;
 
   readonly status = computed<Status>(() => {
     const m = this.metrics();
@@ -53,30 +53,42 @@ export class MetricsCardComponent implements OnDestroy {
   });
 
   constructor() {
-    // Start polling once the host becomes monitored (now, or after the user
-    // clicks Connect). Guarded so it only starts once.
+    // Poll while the host is monitored; stop and clear when it is disconnected,
+    // so the card reverts to its idle "Connect" state (and reconnects cleanly
+    // if the user connects again).
     effect(() => {
-      if (this.monitored() && !this.started) {
-        this.started = true;
-        void this.begin();
-      }
+      const on = this.monitored();
+      untracked(() => (on ? void this.start() : this.stop()));
     });
   }
 
-  private async begin(): Promise<void> {
+  private async start(): Promise<void> {
+    if (this.unlisten) return; // already polling
     const id = this.host().id;
     // Subscribe first so the immediate first snapshot isn't missed.
-    this.unlisten = await this.metricsService.onMetrics(id, (m) =>
+    const unlisten = await this.metricsService.onMetrics(id, (m) =>
       this.metrics.set(m),
     );
+    // Guard against being disconnected again while we were subscribing.
+    if (!this.monitored()) {
+      unlisten();
+      void this.metricsService.stopMetrics(id);
+      return;
+    }
+    this.unlisten = unlisten;
     await this.metricsService.startMetrics(id);
   }
 
+  private stop(): void {
+    if (!this.unlisten) return;
+    this.unlisten();
+    this.unlisten = undefined;
+    this.metrics.set(null); // drop stale readings so a reconnect starts fresh
+    void this.metricsService.stopMetrics(this.host().id);
+  }
+
   ngOnDestroy(): void {
-    this.unlisten?.();
-    if (this.started) {
-      void this.metricsService.stopMetrics(this.host().id);
-    }
+    this.stop();
   }
 
   // --- derived values ---

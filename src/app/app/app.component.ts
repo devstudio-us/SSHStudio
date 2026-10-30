@@ -351,6 +351,13 @@ export class AppComponent implements OnInit {
     if (!this.sessions().some((s) => s.id === this.activeId())) {
       this.activeId.set(this.sessions()[0]?.id ?? null);
     }
+    // Mark it disconnected on the dashboard too: its card reverts to the idle
+    // "Connect" state and its metrics poller stops.
+    this.connectedHostIds.update((set) => {
+      const next = new Set(set);
+      next.delete(host.id);
+      return next;
+    });
   }
 
   async closeSession(id: string, event?: Event): Promise<void> {
