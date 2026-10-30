@@ -165,6 +165,8 @@ export class SftpBrowserComponent {
         this.sftp.upload(this.host().id, entry.path, dest, id),
       );
     }
+    // Clear the source selection so the next pick starts fresh.
+    this.clearSel("local");
     await this.openRemote(this.remotePath());
   }
 
@@ -178,6 +180,8 @@ export class SftpBrowserComponent {
         this.sftp.download(this.host().id, entry.path, dest, id),
       );
     }
+    // Clear the source selection so the next pick starts fresh.
+    this.clearSel("remote");
     await this.openLocal(this.localPath());
   }
 
