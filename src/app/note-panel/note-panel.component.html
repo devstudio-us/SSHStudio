@@ -1,14 +1,14 @@
 @if (collapsed()) {
-  <button class="rail" type="button" (click)="collapsed.set(false)" title="Show notes">
+  <button class="rail" type="button" (click)="collapsed.set(false)" title="Show commands">
     <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <path d="M15 18l-6-6 6-6" />
     </svg>
-    <span class="rail-text">Notes</span>
+    <span class="rail-text">Commands</span>
   </button>
 } @else {
   <div class="panel">
     <header class="panel-head">
-      <span>Notes</span>
+      <span>Commands</span>
       <button class="mini" type="button" (click)="collapsed.set(true)" title="Collapse">
         <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M9 6l6 6-6 6" />
@@ -28,13 +28,13 @@
             <svg class="chev" [class.closed]="hostCollapsed()" viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6" /></svg>
             <span>{{ host().name || host().hostname }}</span>
           </button>
-          <button class="mini" type="button" (click)="add.emit(host().id)" title="Add note for this host">+</button>
+          <button class="mini" type="button" (click)="add.emit(host().id)" title="Add command for this host">+</button>
         </div>
         <div class="pane-scroll">
           @for (note of hostNotes(); track note.id) {
             <ng-container [ngTemplateOutlet]="row" [ngTemplateOutletContext]="{ $implicit: note }" />
           } @empty {
-            <p class="none">No notes for this host.</p>
+            <p class="none">No commands for this host.</p>
           }
         </div>
       </section>
@@ -50,13 +50,13 @@
             <svg class="chev" [class.closed]="globalCollapsed()" viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6" /></svg>
             <span>Global</span>
           </button>
-          <button class="mini" type="button" (click)="add.emit(null)" title="Add global note">+</button>
+          <button class="mini" type="button" (click)="add.emit(null)" title="Add global command">+</button>
         </div>
         <div class="pane-scroll">
           @for (note of globalNotes(); track note.id) {
             <ng-container [ngTemplateOutlet]="row" [ngTemplateOutletContext]="{ $implicit: note }" />
           } @empty {
-            <p class="none">No global notes.</p>
+            <p class="none">No global commands.</p>
           }
         </div>
       </section>

@@ -69,6 +69,26 @@ header {
 .connect:hover {
   background-color: var(--accent-hover);
 }
+.connect:disabled {
+  opacity: 0.8;
+  cursor: default;
+}
+.connect .spinner {
+  display: inline-block;
+  width: 13px;
+  height: 13px;
+  vertical-align: -2px;
+  margin-right: 0.3rem;
+  border: 2px solid color-mix(in srgb, var(--accent-contrast) 40%, transparent);
+  border-top-color: var(--accent-contrast);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
 .name {
   font-weight: 600;
   overflow: hidden;

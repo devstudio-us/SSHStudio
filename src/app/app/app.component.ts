@@ -98,6 +98,18 @@ export class AppComponent implements OnInit {
   readonly activeHost = computed(
     () => this.sessions().find((s) => s.id === this.activeId())?.host ?? null,
   );
+  /** Hosts with at least one live terminal session — the sidebar shows only
+   * these; all hosts (connected or not) live on the Dashboard. */
+  readonly connectedHosts = computed(() =>
+    this.hosts().filter((h) => this.hasLiveSession(h)),
+  );
+  /** Sessions for the active host only, so the terminal tab bar shows just the
+   * selected server's terminals (others stay open, just hidden). */
+  readonly visibleSessions = computed(() => {
+    const hostId = this.activeHost()?.id;
+    const all = this.sessions();
+    return hostId ? all.filter((s) => s.host.id === hostId) : all;
+  });
   /** Scope options for the note form: Global (null) + each host. */
   readonly noteScopeOptions = computed<SelectOption[]>(() => [
     { value: null, label: "Global" },
@@ -522,9 +534,9 @@ export class AppComponent implements OnInit {
 
   deleteNote(note: Note): void {
     this.askConfirm({
-      title: "Delete note",
-      message: `Delete "${note.name || note.command || note.text || "this note"}"?`,
-      confirmLabel: "Delete note",
+      title: "Delete command",
+      message: `Delete "${note.name || note.command || note.text || "this command"}"?`,
+      confirmLabel: "Delete command",
       onConfirm: () => this.doDeleteNote(note),
     });
   }
@@ -581,7 +593,7 @@ export class AppComponent implements OnInit {
       if (host) {
         await this.openHost(host, command);
       } else {
-        this.error.set("The host for this note no longer exists.");
+        this.error.set("The host for this command no longer exists.");
       }
       return;
     }

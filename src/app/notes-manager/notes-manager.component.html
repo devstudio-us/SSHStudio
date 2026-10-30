@@ -1,6 +1,6 @@
 <div class="head">
-  <h2>Notes</h2>
-  <button class="primary" type="button" (click)="addNew.emit()">New note</button>
+  <h2>Commands</h2>
+  <button class="primary" type="button" (click)="addNew.emit()">New command</button>
 </div>
 
 <div class="filters">
@@ -28,12 +28,12 @@
       </svg>
     </span>
     @if (notes().length === 0) {
-      <h2>No notes yet</h2>
+      <h2>No commands yet</h2>
       <p>Save commands and snippets here — run them in a terminal or copy them when you need them.</p>
-      <button class="primary" type="button" (click)="addNew.emit()">Create your first note</button>
+      <button class="primary" type="button" (click)="addNew.emit()">Create your first command</button>
     } @else {
       <h2>No matches</h2>
-      <p>No notes match your search or filter.</p>
+      <p>No commands match your search or filter.</p>
     }
   </div>
 }

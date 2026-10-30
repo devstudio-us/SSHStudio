@@ -25,6 +25,8 @@ export class DashboardComponent {
   readonly monitoredIds = input.required<Set<string>>();
   /** Last connection error per host id, shown on that host's card. */
   readonly connectErrors = input<Record<string, string>>({});
+  /** Host id currently being connected (shows a spinner on its card). */
+  readonly connectingId = input<string | null>(null);
 
   readonly connect = output<Host>();
   readonly openTerminal = output<Host>();

@@ -21,8 +21,8 @@
           <path d="M10 11v6M14 11v6" />
         </svg>
       </button>
-      <button class="add-note" type="button" (click)="addNote.emit(host().id)" title="Add a note for this host">
-        + note
+      <button class="add-note" type="button" (click)="addNote.emit(host().id)" title="Add a command for this host">
+        + command
       </button>
     </div>
   </header>
@@ -56,8 +56,13 @@
       } @else {
         <span class="idle-text">Not connected — connect to see live metrics.</span>
       }
-      <button class="primary connect" type="button" (click)="connect.emit(host())">
-        {{ connectError() ? "Retry" : "Connect" }}
+      <button class="primary connect" type="button" [disabled]="connecting()" (click)="connect.emit(host())">
+        @if (connecting()) {
+          <span class="spinner" aria-hidden="true"></span>
+          Connecting…
+        } @else {
+          {{ connectError() ? "Retry" : "Connect" }}
+        }
       </button>
     </div>
   } @else {
