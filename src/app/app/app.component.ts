@@ -91,9 +91,15 @@ export class AppComponent implements OnInit {
   readonly theme = this.themeService.theme;
 
   readonly view = signal<View>("dashboard");
-  /** Host ids connected at least once this session — the dashboard polls these;
-   * other hosts still appear on the dashboard, just inactive. */
-  readonly connectedHostIds = signal<Set<string>>(new Set());
+  /** Host ids with at least one live terminal session — the single source of
+   * truth for "connected". Drives both the sidebar list and the dashboard's
+   * monitored state, so they can never disagree. Closing a host's last tab (or
+   * its shell exiting) drops it from here automatically. */
+  readonly connectedHostIds = computed(() => {
+    const ids = new Set<string>();
+    for (const s of this.sessions()) if (!s.closed) ids.add(s.host.id);
+    return ids;
+  });
   /** The host of the active terminal session — drives the notes side panel. */
   readonly activeHost = computed(
     () => this.sessions().find((s) => s.id === this.activeId())?.host ?? null,
@@ -269,8 +275,8 @@ export class AppComponent implements OnInit {
         { id, host, closed: false, pendingCommand: runAfter },
       ]);
       this.activeId.set(id);
-      // Now eligible for metrics polling on the dashboard.
-      this.connectedHostIds.update((set) => new Set(set).add(host.id));
+      // Adding the session marks the host connected (connectedHostIds derives
+      // from live sessions), so it becomes eligible for dashboard metrics.
       this.clearConnectError(host.id);
     } catch (e) {
       const msg = String(e);
@@ -332,9 +338,10 @@ export class AppComponent implements OnInit {
     );
   }
 
-  /** Disconnect a host from the sidebar: close all its terminal sessions, so
-   * it drops off the "Connected hosts" list. Does not delete the saved host
-   * (that lives on the Dashboard) and leaves dashboard monitoring untouched. */
+  /** Disconnect a host from the sidebar: close all its terminal sessions, so it
+   * drops off the "Connected hosts" list and reverts to idle on the Dashboard
+   * (metrics stop). Does not delete the saved host (that lives on the
+   * Dashboard). */
   async disconnectHost(host: Host, event?: Event): Promise<void> {
     event?.stopPropagation();
     const ids = this.sessions()
@@ -351,13 +358,9 @@ export class AppComponent implements OnInit {
     if (!this.sessions().some((s) => s.id === this.activeId())) {
       this.activeId.set(this.sessions()[0]?.id ?? null);
     }
-    // Mark it disconnected on the dashboard too: its card reverts to the idle
-    // "Connect" state and its metrics poller stops.
-    this.connectedHostIds.update((set) => {
-      const next = new Set(set);
-      next.delete(host.id);
-      return next;
-    });
+    // No need to touch the dashboard: connectedHostIds derives from live
+    // sessions, so removing them drops the host to the idle "Connect" state and
+    // stops its metrics poller.
   }
 
   async closeSession(id: string, event?: Event): Promise<void> {
