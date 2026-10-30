@@ -22,7 +22,9 @@ import { SftpService } from "../services/sftp.service";
 import { Host } from "../models/host.model";
 import { Note } from "../models/note.model";
 
-type View = "terminals" | "dashboard" | "notes" | "files";
+type View = "terminals" | "dashboard" | "notes";
+/** Within the host workspace (terminals view), show the shells or the files. */
+type WorkspaceMode = "terminal" | "files";
 
 /** An open (or recently closed) SSH session shown as a terminal tab. */
 interface Session {
@@ -95,8 +97,8 @@ export class AppComponent implements OnInit {
   readonly theme = this.themeService.theme;
 
   readonly view = signal<View>("dashboard");
-  /** The host whose files are shown in the SFTP (Files) view, if any. */
-  readonly sftpHost = signal<Host | null>(null);
+  /** Terminal vs Files within the active host's workspace. */
+  readonly workspaceMode = signal<WorkspaceMode>("terminal");
   /** Host ids with at least one live terminal session — the single source of
    * truth for "connected". Drives both the sidebar list and the dashboard's
    * monitored state, so they can never disagree. Closing a host's last tab (or
@@ -200,6 +202,7 @@ export class AppComponent implements OnInit {
     this.connectingId.set(host.id);
     if (switchView) {
       this.view.set("terminals");
+      this.workspaceMode.set("terminal");
     }
     try {
       await this.connectWith(host, undefined, undefined, runAfter);
@@ -222,6 +225,7 @@ export class AppComponent implements OnInit {
     if (live) {
       this.activeId.set(live.id);
       this.view.set("terminals");
+      this.workspaceMode.set("terminal");
     } else {
       void this.openHost(host);
     }
@@ -344,16 +348,11 @@ export class AppComponent implements OnInit {
     );
   }
 
-  /** Open the two-pane SFTP (Files) browser for a connected host. */
+  /** Open a connected host's workspace on the Files (SFTP) side. */
   openSftp(host: Host, event?: Event): void {
     event?.stopPropagation();
-    this.sftpHost.set(host);
-    this.view.set("files");
-  }
-
-  /** Close the Files view and return to the Dashboard. */
-  closeSftp(): void {
-    this.view.set("dashboard");
+    this.focusOrOpenHost(host); // make it the active host, in the Terminals view
+    this.workspaceMode.set("files");
   }
 
   /** Disconnect a host from the sidebar: close all its terminal sessions, so it
@@ -364,9 +363,6 @@ export class AppComponent implements OnInit {
     event?.stopPropagation();
     // Also close any SFTP session for this host.
     void this.sftp.disconnect(host.id);
-    if (this.sftpHost()?.id === host.id && this.view() === "files") {
-      this.view.set("dashboard");
-    }
     const ids = this.sessions()
       .filter((s) => s.host.id === host.id)
       .map((s) => s.id);

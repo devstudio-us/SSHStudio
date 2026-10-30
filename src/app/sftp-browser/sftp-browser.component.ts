@@ -1,4 +1,4 @@
-import { Component, effect, inject, input, output, signal } from "@angular/core";
+import { Component, effect, inject, input, signal } from "@angular/core";
 import { FormsModule } from "@angular/forms";
 import { UnlistenFn } from "@tauri-apps/api/event";
 import { Host } from "../models/host.model";
@@ -44,7 +44,6 @@ interface Ask {
 })
 export class SftpBrowserComponent {
   readonly host = input.required<Host>();
-  readonly close = output<void>();
 
   private readonly sftp = inject(SftpService);
 

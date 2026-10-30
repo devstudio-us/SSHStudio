@@ -137,8 +137,30 @@
       </div>
     }
 
-    <!-- Terminals view (kept mounted so sessions survive view switches). -->
+    <!-- Host workspace: Terminal + Files for the active host, toggled in place
+         and kept mounted so both survive view/mode switches. -->
     <section class="view-terminals" [style.display]="view() === 'terminals' ? 'flex' : 'none'">
+      @if (activeHost(); as h) {
+        <div class="ws-head">
+          <div class="ws-title">
+            <span class="ws-name">{{ h.name || h.hostname }}</span>
+            <span class="ws-addr">{{ h.user ? h.user + "@" : "" }}{{ h.hostname }}:{{ h.port }}</span>
+          </div>
+          <div class="ws-toggle" role="group" aria-label="Workspace mode">
+            <button type="button" [class.on]="workspaceMode() === 'terminal'" (click)="workspaceMode.set('terminal')">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="18" rx="2" /><path d="m6 8 3 3-3 3M12 14h5" /></svg>
+              Terminal
+            </button>
+            <button type="button" [class.on]="workspaceMode() === 'files'" (click)="workspaceMode.set('files')">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z" /></svg>
+              Files
+            </button>
+          </div>
+        </div>
+      }
+
+      <!-- Terminal side -->
+      <div class="ws-pane" [style.display]="workspaceMode() === 'terminal' || !activeHost() ? 'flex' : 'none'">
       @if (sessions().length === 0) {
         <div class="empty-state">
           <span class="es-icon">
@@ -199,6 +221,16 @@
           }
         </div>
       }
+      </div>
+
+      <!-- Files side (SFTP), mounted alongside the terminal for the same host. -->
+      @if (activeHost(); as h) {
+        <app-sftp-browser
+          class="ws-pane"
+          [host]="h"
+          [style.display]="workspaceMode() === 'files' ? 'flex' : 'none'"
+        />
+      }
     </section>
 
     <!-- Dashboard view. -->
@@ -228,16 +260,6 @@
       (remove)="deleteNote($event)"
       (run)="runNote($event)"
     />
-
-    <!-- Files (SFTP) view. -->
-    @if (sftpHost(); as h) {
-      <app-sftp-browser
-        class="view-files"
-        [style.display]="view() === 'files' ? 'flex' : 'none'"
-        [host]="h"
-        (close)="closeSftp()"
-      />
-    }
   </main>
 </div>
 
