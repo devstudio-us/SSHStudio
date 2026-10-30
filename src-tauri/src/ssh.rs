@@ -36,10 +36,19 @@ enum SessionCommand {
 /// `attach`, which starts the reader task and moves it to `Running`.
 enum SessionState {
     Pending {
-        handle: client::Handle<Client>,
+        host_id: String,
+        handle: Arc<client::Handle<Client>>,
         channel: russh::Channel<client::Msg>,
     },
     Running(mpsc::Sender<SessionCommand>),
+}
+
+/// One authenticated connection to a host, shared by all of that host's tabs
+/// (SSH multiplexing). `refs` counts the live sessions (channels) using it; the
+/// transport is closed once the count reaches zero.
+struct Connection {
+    handle: Arc<client::Handle<Client>>,
+    refs: usize,
 }
 
 /// Tauri-managed state: a map of session id -> state. Wrapped in an
@@ -54,6 +63,10 @@ enum SessionState {
 #[derive(Default, Clone)]
 pub struct SessionManager {
     sessions: Arc<Mutex<HashMap<String, SessionState>>>,
+    /// Authenticated connections keyed by host id, reused across that host's
+    /// tabs so an extra tab opens instantly as a new channel on the same
+    /// connection instead of re-dialing and re-authenticating.
+    connections: Arc<Mutex<HashMap<String, Connection>>>,
     secrets: Arc<Mutex<HashMap<String, Option<String>>>>,
 }
 
@@ -84,6 +97,60 @@ impl SessionManager {
     pub fn cached_secret(&self, host_id: &str) -> Option<Option<String>> {
         self.secrets.lock().unwrap().get(host_id).cloned()
     }
+
+    /// A clone of the shared connection handle for a host, if one is pooled.
+    fn pooled_handle(&self, host_id: &str) -> Option<Arc<client::Handle<Client>>> {
+        self.connections
+            .lock()
+            .unwrap()
+            .get(host_id)
+            .map(|c| c.handle.clone())
+    }
+
+    /// Count a newly opened session against a host's connection, pooling the
+    /// connection if it is not already (a fresh connect, or one whose entry a
+    /// concurrent close just dropped).
+    fn count_session(&self, host_id: &str, handle: &Arc<client::Handle<Client>>) {
+        self.connections
+            .lock()
+            .unwrap()
+            .entry(host_id.to_string())
+            .and_modify(|c| c.refs += 1)
+            .or_insert_with(|| Connection {
+                handle: handle.clone(),
+                refs: 1,
+            });
+    }
+
+    /// Remove a stale pooled connection and close its transport.
+    fn drop_connection(&self, host_id: &str) {
+        if let Some(c) = self.connections.lock().unwrap().remove(host_id) {
+            spawn_disconnect(c.handle);
+        }
+    }
+
+    /// Release one session's hold on a host's connection; close the shared
+    /// transport once the last session using it is gone.
+    fn release_connection(&self, host_id: &str) {
+        let mut conns = self.connections.lock().unwrap();
+        let drained = match conns.get_mut(host_id) {
+            Some(c) => {
+                c.refs = c.refs.saturating_sub(1);
+                c.refs == 0
+            }
+            None => false,
+        };
+        if drained && let Some(c) = conns.remove(host_id) {
+            spawn_disconnect(c.handle);
+        }
+    }
+}
+
+/// Close a connection's transport in the background (fire-and-forget).
+fn spawn_disconnect(handle: Arc<client::Handle<Client>>) {
+    tauri::async_runtime::spawn(async move {
+        let _ = handle.disconnect(Disconnect::ByApplication, "", "").await;
+    });
 }
 
 /// russh client handler. Its only job is host-key verification; russh calls
@@ -267,6 +334,21 @@ pub(crate) async fn open_authenticated(
     Ok(session)
 }
 
+/// Open a brand-new authenticated connection and the first shell channel on it.
+/// The handle is wrapped in `Arc` so later tabs can share the same connection.
+async fn open_fresh_connection(
+    app: &AppHandle,
+    host: &crate::hosts::Host,
+    secret: Option<&str>,
+) -> Result<(Arc<client::Handle<Client>>, russh::Channel<client::Msg>), String> {
+    let handle = Arc::new(open_authenticated(app, host, secret).await?);
+    let channel = handle
+        .channel_open_session()
+        .await
+        .map_err(|e| format!("Could not open session channel: {e}"))?;
+    Ok((handle, channel))
+}
+
 /// Connect to a host, authenticate, open a shell on a PTY, and start streaming.
 ///
 /// `password` doubles as the key passphrase when the host uses an identity
@@ -280,17 +362,28 @@ pub async fn connect(
     password: Option<String>,
 ) -> Result<String, String> {
     let host = hosts::get_host(&app, &host_id)?.ok_or("Host not found.")?;
-    let session = open_authenticated(&app, &host, password.as_deref()).await?;
 
-    // Remember the working secret so the metrics poller can reconnect without
-    // prompting. Stored in memory only.
-    state.remember_secret(&host_id, password.clone());
+    // Reuse this host's existing authenticated connection if we have one, so an
+    // extra tab opens instantly as a new channel on the same connection rather
+    // than re-dialing and re-authenticating. Each channel is still its own shell
+    // (own history, own running command); only the transport is shared.
+    let (handle, channel, fresh) = match state.pooled_handle(&host_id) {
+        Some(handle) => match handle.channel_open_session().await {
+            Ok(channel) => (handle, channel, false),
+            Err(_) => {
+                // The pooled connection is stale; drop it and dial fresh.
+                state.drop_connection(&host_id);
+                let (h, c) = open_fresh_connection(&app, &host, password.as_deref()).await?;
+                (h, c, true)
+            }
+        },
+        None => {
+            let (h, c) = open_fresh_connection(&app, &host, password.as_deref()).await?;
+            (h, c, true)
+        }
+    };
 
     // --- Shell on a PTY ---
-    let channel = session
-        .channel_open_session()
-        .await
-        .map_err(|e| format!("Could not open session channel: {e}"))?;
     channel
         .request_pty(false, "xterm-256color", 80, 24, 0, 0, &[])
         .await
@@ -300,6 +393,16 @@ pub async fn connect(
         .await
         .map_err(|e| format!("Could not start shell: {e}"))?;
 
+    // Remember the working secret (fresh connections only — a reused connection
+    // is already authenticated, so keep the secret that worked) so the metrics
+    // poller can reconnect without prompting. Stored in memory only. Count this
+    // session against the host's connection only after the shell is set up, so
+    // a failed setup doesn't leak a reference.
+    if fresh {
+        state.remember_secret(&host_id, password.clone());
+    }
+    state.count_session(&host_id, &handle);
+
     // Hold the session open but unread. The reader starts on `attach`, once
     // the frontend has subscribed to this session's events — so the initial
     // shell banner/prompt is not emitted into the void.
@@ -307,7 +410,8 @@ pub async fn connect(
     state.sessions.lock().unwrap().insert(
         session_id.clone(),
         SessionState::Pending {
-            handle: session,
+            host_id: host_id.clone(),
+            handle,
             channel,
         },
     );
@@ -327,7 +431,11 @@ pub async fn attach(
     let pending = {
         let mut map = state.sessions.lock().unwrap();
         match map.remove(&session_id) {
-            Some(SessionState::Pending { handle, channel }) => Some((handle, channel)),
+            Some(SessionState::Pending {
+                host_id,
+                handle,
+                channel,
+            }) => Some((host_id, handle, channel)),
             Some(other) => {
                 map.insert(session_id.clone(), other); // already running: put it back
                 None
@@ -335,7 +443,7 @@ pub async fn attach(
             None => None,
         }
     };
-    let Some((handle, channel)) = pending else {
+    let Some((host_id, handle, channel)) = pending else {
         return Ok(());
     };
 
@@ -346,16 +454,17 @@ pub async fn attach(
         .unwrap()
         .insert(session_id.clone(), SessionState::Running(tx));
 
-    let sessions = state.sessions.clone();
+    let manager = state.inner().clone();
     // Use Tauri's managed runtime so this works regardless of the calling
     // command's context (and stays consistent with the metrics poller).
     tauri::async_runtime::spawn(run_session(
         app.clone(),
         session_id,
+        host_id,
         handle,
         channel,
         rx,
-        sessions,
+        manager,
     ));
     Ok(())
 }
@@ -365,10 +474,13 @@ pub async fn attach(
 async fn run_session(
     app: AppHandle,
     session_id: String,
-    session: client::Handle<Client>,
+    host_id: String,
+    // Held for the session's lifetime so the shared connection stays alive even
+    // if the pool entry points at a different (raced) handle; not used directly.
+    _handle: Arc<client::Handle<Client>>,
     mut channel: russh::Channel<client::Msg>,
     mut rx: mpsc::Receiver<SessionCommand>,
-    sessions: Arc<Mutex<HashMap<String, SessionState>>>,
+    manager: SessionManager,
 ) {
     let output_event = format!("pty-output-{session_id}");
     let closed_event = format!("pty-closed-{session_id}");
@@ -404,11 +516,12 @@ async fn run_session(
         }
     }
 
-    // Best-effort clean shutdown, then drop from the manager and notify the UI.
-    let _ = session
-        .disconnect(Disconnect::ByApplication, "", "")
-        .await;
-    sessions.lock().unwrap().remove(&session_id);
+    // Close only THIS channel (not the shared connection), drop from the
+    // manager, then release our hold — which disconnects the transport only if
+    // this was the host's last tab.
+    let _ = channel.close().await;
+    manager.sessions.lock().unwrap().remove(&session_id);
+    manager.release_connection(&host_id);
     let _ = app.emit(&closed_event, ());
 }
 
@@ -445,12 +558,18 @@ pub async fn disconnect(
     // Remove first so no further commands are accepted, then tear down.
     let removed = state.sessions.lock().unwrap().remove(&session_id);
     match removed {
+        // Running: the reader task closes its channel and releases the
+        // connection when it sees Close.
         Some(SessionState::Running(tx)) => {
             let _ = tx.send(SessionCommand::Close).await;
         }
-        Some(SessionState::Pending { handle, .. }) => {
-            // Never attached: close the transport directly (channel drops).
-            let _ = handle.disconnect(Disconnect::ByApplication, "", "").await;
+        // Never attached: close just this channel and release our hold (which
+        // disconnects the transport only if it was the host's last tab).
+        Some(SessionState::Pending {
+            host_id, channel, ..
+        }) => {
+            let _ = channel.close().await;
+            state.release_connection(&host_id);
         }
         None => {}
     }
