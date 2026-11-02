@@ -48,6 +48,7 @@
 }
 .section {
   border: 1px solid var(--border);
+  border-left: 3px solid color-mix(in srgb, var(--accent) 55%, transparent);
   border-radius: var(--radius);
   overflow: hidden;
   background-color: var(--surface);
@@ -57,7 +58,6 @@
   align-items: center;
   gap: 0.5rem;
   padding: 0.6rem 0.75rem;
-  background-color: var(--surface-2);
   border-bottom: 1px solid var(--border);
 }
 .sec-toggle {
@@ -83,7 +83,7 @@
 }
 .sec-ico {
   flex-shrink: 0;
-  color: var(--text-muted);
+  color: var(--accent);
 }
 .sec-title {
   font-size: 0.9rem;
@@ -101,7 +101,7 @@
 }
 .count {
   flex-shrink: 0;
-  background-color: var(--surface);
+  background-color: var(--surface-2);
   border: 1px solid var(--border);
   border-radius: 999px;
   padding: 0 0.5rem;
@@ -182,9 +182,11 @@
 .nm-line {
   display: flex;
   align-items: center;
-  gap: 0.4rem;
+  gap: 0.45rem;
 }
 .nm {
+  flex: 0 1 auto;
+  min-width: 0;
   font-size: 0.88rem;
   font-weight: 600;
   overflow: hidden;
@@ -193,24 +195,30 @@
 }
 .exp {
   flex-shrink: 0;
+  margin-left: auto; /* push the expand chevron to the far right */
   color: var(--text-faint);
   transition: transform 0.15s ease;
 }
 .row.open .exp {
   transform: rotate(90deg);
 }
+/* Command in a terminal-style block: dark, full width, with a $ prompt. */
 .cmd {
   display: block;
-  margin-top: 0.25rem;
+  margin-top: 0.3rem;
   font-family: ui-monospace, Menlo, Consolas, monospace;
   font-size: 0.76rem;
-  color: var(--text-muted);
-  background-color: var(--surface-2);
-  padding: 0.2rem 0.45rem;
+  color: #cdd6e4;
+  background-color: #0f141b;
+  padding: 0.3rem 0.5rem;
   border-radius: var(--radius-sm);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+.cmd::before {
+  content: "$ ";
+  color: var(--accent);
 }
 .row.open .cmd {
   white-space: pre-wrap;
@@ -238,21 +246,18 @@
   color: var(--text-muted);
   white-space: pre-wrap;
 }
+/* Tags sit inline on the name line; accent-tinted chips. */
 .tags {
   display: flex;
-  flex-wrap: wrap;
   gap: 0.25rem;
   flex-shrink: 0;
-  margin-top: 0.3rem;
-  max-width: 35%;
-  justify-content: flex-end;
 }
 .tag {
   font-size: 0.66rem;
-  font-weight: 500;
-  color: var(--text-muted);
-  background-color: var(--surface-2);
-  border-radius: 999px;
+  font-weight: 600;
+  color: var(--accent);
+  background-color: var(--accent-soft);
+  border-radius: var(--radius-sm);
   padding: 0.05rem 0.45rem;
 }
 .acts {
