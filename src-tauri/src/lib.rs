@@ -35,6 +35,8 @@ pub fn run() {
             sftp::sftp_delete,
             sftp::sftp_download,
             sftp::sftp_upload,
+            sftp::sftp_download_dir,
+            sftp::sftp_upload_dir,
             sftp::sftp_disconnect,
             sftp::local_home,
             sftp::local_list,

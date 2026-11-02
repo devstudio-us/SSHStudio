@@ -58,6 +58,22 @@ export class SftpService {
   ): Promise<void> {
     return invoke("sftp_upload", { hostId, localPath, remotePath, transferId });
   }
+  downloadDir(
+    hostId: string,
+    remotePath: string,
+    localPath: string,
+    transferId: string,
+  ): Promise<void> {
+    return invoke("sftp_download_dir", { hostId, remotePath, localPath, transferId });
+  }
+  uploadDir(
+    hostId: string,
+    localPath: string,
+    remotePath: string,
+    transferId: string,
+  ): Promise<void> {
+    return invoke("sftp_upload_dir", { hostId, localPath, remotePath, transferId });
+  }
   onProgress(
     transferId: string,
     cb: (p: TransferProgress) => void,

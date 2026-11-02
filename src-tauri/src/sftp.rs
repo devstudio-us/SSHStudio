@@ -7,6 +7,7 @@
 //! are whatever the OS uses (e.g. "C:\\…" on Windows).
 
 use std::collections::HashMap;
+use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
 use std::time::UNIX_EPOCH;
 
@@ -303,11 +304,14 @@ pub async fn sftp_download(
             .await
             .map_err(|e| format!("Could not create local file: {e}"))?;
 
-        copy_with_progress(app, transfer_id, &mut remote, &mut local, total).await?;
+        let mut prog = ProgressEmitter::new(app, transfer_id, total);
+        stream_copy(&mut prog, &mut remote, &mut local).await?;
         local
             .flush()
             .await
-            .map_err(|e| format!("Could not finish download: {e}"))
+            .map_err(|e| format!("Could not finish download: {e}"))?;
+        prog.finish();
+        Ok(())
     })
     .await
 }
@@ -337,13 +341,177 @@ pub async fn sftp_upload(
             .await
             .map_err(|e| format!("Could not create remote file: {e}"))?;
 
-        copy_with_progress(app, transfer_id, &mut local, &mut remote, total).await?;
+        let mut prog = ProgressEmitter::new(app, transfer_id, total);
+        stream_copy(&mut prog, &mut local, &mut remote).await?;
         remote
             .shutdown()
             .await
-            .map_err(|e| format!("Could not finish upload: {e}"))
+            .map_err(|e| format!("Could not finish upload: {e}"))?;
+        prog.finish();
+        Ok(())
     })
     .await
+}
+
+/// Upload a local folder (recursively) to the server, emitting combined
+/// progress across all its files as a single `sftp-progress-<transfer_id>`.
+#[tauri::command]
+pub async fn sftp_upload_dir(
+    app: AppHandle,
+    ssh: State<'_, SessionManager>,
+    sftp: State<'_, SftpManager>,
+    host_id: String,
+    local_path: String,
+    remote_path: String,
+    transfer_id: String,
+) -> Result<(), String> {
+    let app = &app;
+    let (local_path, remote_path, transfer_id) =
+        (local_path.as_str(), remote_path.as_str(), transfer_id.as_str());
+    with_session(app, &ssh, &sftp, &host_id, |conn| async move {
+        // Walk the local tree first (metadata only) so we know the directories
+        // to create and the total byte count for the progress bar.
+        let mut files: Vec<(PathBuf, String, u64)> = Vec::new();
+        let mut dirs: Vec<String> = Vec::new();
+        walk_local(Path::new(local_path), remote_path, &mut files, &mut dirs)?;
+        let total: u64 = files.iter().map(|(_, _, size)| size).sum();
+
+        // Create the destination folders (parents first). Ignore errors here:
+        // the folder usually already exists when overwriting, and a genuine
+        // problem surfaces when the file create below fails.
+        for dir in &dirs {
+            let _ = conn.sftp.create_dir(dir.as_str()).await;
+        }
+
+        let mut prog = ProgressEmitter::new(app, transfer_id, total);
+        for (src, dest, _) in &files {
+            let mut local = tokio::fs::File::open(src)
+                .await
+                .map_err(|e| format!("Could not open {}: {e}", src.display()))?;
+            let mut remote = conn
+                .sftp
+                .create(dest.as_str())
+                .await
+                .map_err(|e| format!("Could not create remote file: {e}"))?;
+            stream_copy(&mut prog, &mut local, &mut remote).await?;
+            remote
+                .shutdown()
+                .await
+                .map_err(|e| format!("Could not finish upload: {e}"))?;
+        }
+        prog.finish();
+        Ok(())
+    })
+    .await
+}
+
+/// Download a remote folder (recursively) to the local disk, emitting combined
+/// progress across all its files as a single `sftp-progress-<transfer_id>`.
+#[tauri::command]
+pub async fn sftp_download_dir(
+    app: AppHandle,
+    ssh: State<'_, SessionManager>,
+    sftp: State<'_, SftpManager>,
+    host_id: String,
+    remote_path: String,
+    local_path: String,
+    transfer_id: String,
+) -> Result<(), String> {
+    let app = &app;
+    let (remote_path, local_path, transfer_id) =
+        (remote_path.as_str(), local_path.as_str(), transfer_id.as_str());
+    with_session(app, &ssh, &sftp, &host_id, |conn| async move {
+        // Walk the remote tree first so we know the folders to create locally
+        // and the total byte count for the progress bar.
+        let mut files: Vec<(String, PathBuf, u64)> = Vec::new();
+        let mut dirs: Vec<PathBuf> = Vec::new();
+        walk_remote(&conn.sftp, remote_path, Path::new(local_path), &mut files, &mut dirs).await?;
+        let total: u64 = files.iter().map(|(_, _, size)| size).sum();
+
+        for dir in &dirs {
+            std::fs::create_dir_all(dir).map_err(|e| format!("Could not create local folder: {e}"))?;
+        }
+
+        let mut prog = ProgressEmitter::new(app, transfer_id, total);
+        for (src, dest, _) in &files {
+            let mut remote = conn
+                .sftp
+                .open(src.as_str())
+                .await
+                .map_err(|e| format!("Could not open remote file: {e}"))?;
+            let mut local = tokio::fs::File::create(dest)
+                .await
+                .map_err(|e| format!("Could not create local file: {e}"))?;
+            stream_copy(&mut prog, &mut remote, &mut local).await?;
+            local
+                .flush()
+                .await
+                .map_err(|e| format!("Could not finish download: {e}"))?;
+        }
+        prog.finish();
+        Ok(())
+    })
+    .await
+}
+
+/// Recursively collect a local tree: `files` as (source path, remote dest path,
+/// size) and `dirs` as remote directories to create (parents before children).
+fn walk_local(
+    dir: &Path,
+    remote_dir: &str,
+    files: &mut Vec<(PathBuf, String, u64)>,
+    dirs: &mut Vec<String>,
+) -> Result<(), String> {
+    dirs.push(remote_dir.to_string());
+    let read = std::fs::read_dir(dir).map_err(|e| format!("Could not read {}: {e}", dir.display()))?;
+    for entry in read.flatten() {
+        let path = entry.path();
+        let name = entry.file_name().to_string_lossy().into_owned();
+        // Follow junctions so nested folders recurse (see `local_list`).
+        let meta = match std::fs::metadata(&path).or_else(|_| entry.metadata()) {
+            Ok(m) => m,
+            Err(_) => continue,
+        };
+        let remote_child = remote_join(remote_dir, &name);
+        if meta.is_dir() {
+            walk_local(&path, &remote_child, files, dirs)?;
+        } else {
+            files.push((path, remote_child, meta.len()));
+        }
+    }
+    Ok(())
+}
+
+/// Recursively collect a remote tree: `files` as (remote path, local dest path,
+/// size) and `dirs` as local directories to create (parents before children).
+async fn walk_remote(
+    sftp: &SftpSession,
+    remote_dir: &str,
+    local_dir: &Path,
+    files: &mut Vec<(String, PathBuf, u64)>,
+    dirs: &mut Vec<PathBuf>,
+) -> Result<(), String> {
+    dirs.push(local_dir.to_path_buf());
+    let read = sftp
+        .read_dir(remote_dir)
+        .await
+        .map_err(|e| format!("Could not list {remote_dir}: {e}"))?;
+    for entry in read {
+        let name = entry.file_name();
+        if name == "." || name == ".." {
+            continue;
+        }
+        let meta = entry.metadata();
+        let remote_child = remote_join(remote_dir, &name);
+        let local_child = local_dir.join(&name);
+        if meta.is_dir() {
+            // Box the recursive future so the async fn has a known size.
+            Box::pin(walk_remote(sftp, &remote_child, &local_child, files, dirs)).await?;
+        } else {
+            files.push((remote_child, local_child, meta.size.unwrap_or(0)));
+        }
+    }
+    Ok(())
 }
 
 /// Close and forget a host's SFTP session (e.g. when its Files view is closed).
@@ -352,22 +520,65 @@ pub fn sftp_disconnect(sftp: State<'_, SftpManager>, host_id: String) {
     sftp.conns.lock().unwrap().remove(&host_id);
 }
 
-/// Stream `reader` into `writer` in chunks, emitting throttled progress.
-async fn copy_with_progress<R, W>(
-    app: &AppHandle,
-    transfer_id: &str,
+/// Tracks cumulative bytes for one transfer (which spans many files when a whole
+/// folder is transferred) and emits throttled `sftp-progress-<id>` updates.
+struct ProgressEmitter<'a> {
+    app: &'a AppHandle,
+    event: String,
+    transferred: u64,
+    last_emit: u64,
+    total: u64,
+}
+
+impl<'a> ProgressEmitter<'a> {
+    fn new(app: &'a AppHandle, transfer_id: &str, total: u64) -> Self {
+        Self {
+            app,
+            event: format!("sftp-progress-{transfer_id}"),
+            transferred: 0,
+            last_emit: 0,
+            total,
+        }
+    }
+
+    /// Count `n` more bytes and emit at most every ~512 KiB (to avoid flooding).
+    fn add(&mut self, n: u64) {
+        self.transferred += n;
+        if self.transferred - self.last_emit >= 512 * 1024 {
+            self.last_emit = self.transferred;
+            let _ = self.app.emit(
+                &self.event,
+                Progress {
+                    transferred: self.transferred,
+                    total: self.total,
+                },
+            );
+        }
+    }
+
+    /// Emit a final update marking the transfer complete.
+    fn finish(&self) {
+        let _ = self.app.emit(
+            &self.event,
+            Progress {
+                transferred: self.transferred,
+                total: self.total.max(self.transferred),
+            },
+        );
+    }
+}
+
+/// Stream `reader` into `writer` in chunks, updating `prog` as it goes.
+async fn stream_copy<R, W>(
+    prog: &mut ProgressEmitter<'_>,
     reader: &mut R,
     writer: &mut W,
-    total: u64,
 ) -> Result<(), String>
 where
     R: AsyncReadExt + Unpin,
     W: AsyncWriteExt + Unpin,
 {
-    let event = format!("sftp-progress-{transfer_id}");
     let mut buf = vec![0u8; 64 * 1024];
-    let mut transferred: u64 = 0;
-    let mut last_emit: u64 = 0;
     loop {
         let n = reader
             .read(&mut buf)
@@ -380,21 +591,8 @@ where
             .write_all(&buf[..n])
             .await
             .map_err(|e| format!("Transfer write error: {e}"))?;
-        transferred += n as u64;
-        // Emit at most every ~512 KiB to avoid flooding the frontend.
-        if transferred - last_emit >= 512 * 1024 {
-            last_emit = transferred;
-            let _ = app.emit(&event, Progress { transferred, total });
-        }
+        prog.add(n as u64);
     }
-    // Final 100% update.
-    let _ = app.emit(
-        &event,
-        Progress {
-            transferred,
-            total: total.max(transferred),
-        },
-    );
     Ok(())
 }
 

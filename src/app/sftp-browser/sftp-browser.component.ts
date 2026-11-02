@@ -28,6 +28,8 @@ interface Ask {
   value: string;
   okLabel: string;
   onOk: (value: string) => void;
+  /** Called when the modal is dismissed with Cancel (used by overwrite prompt). */
+  onCancel?: () => void;
 }
 
 /**
@@ -156,13 +158,22 @@ export class SftpBrowserComponent {
   // --- transfers ---
 
   async upload(): Promise<void> {
-    const targets = this.localEntries().filter(
-      (e) => this.localSel().has(e.path) && !e.is_dir,
-    );
+    const targets = this.localEntries().filter((e) => this.localSel().has(e.path));
+    if (!targets.length) return;
+
+    // Anything with the same name already in the destination folder would be
+    // replaced; ask first. (Folders merge, overwriting files inside.)
+    const existing = new Set(this.remoteEntries().map((e) => e.name));
+    const clashes = targets.filter((t) => existing.has(t.name)).map((t) => t.name);
+    if (clashes.length && !(await this.confirmOverwrite(clashes, this.hostLabel()))) return;
+
+    const hostId = this.host().id;
     for (const entry of targets) {
       const dest = this.joinRemote(this.remotePath(), entry.name);
       await this.runTransfer("up", entry.name, (id) =>
-        this.sftp.upload(this.host().id, entry.path, dest, id),
+        entry.is_dir
+          ? this.sftp.uploadDir(hostId, entry.path, dest, id)
+          : this.sftp.upload(hostId, entry.path, dest, id),
       );
     }
     // Clear the source selection so the next pick starts fresh.
@@ -171,18 +182,52 @@ export class SftpBrowserComponent {
   }
 
   async download(): Promise<void> {
-    const targets = this.remoteEntries().filter(
-      (e) => this.remoteSel().has(e.path) && !e.is_dir,
-    );
+    const targets = this.remoteEntries().filter((e) => this.remoteSel().has(e.path));
+    if (!targets.length) return;
+
+    const existing = new Set(this.localEntries().map((e) => e.name));
+    const clashes = targets.filter((t) => existing.has(t.name)).map((t) => t.name);
+    if (clashes.length && !(await this.confirmOverwrite(clashes, "this computer"))) return;
+
+    const hostId = this.host().id;
     for (const entry of targets) {
       const dest = this.joinLocal(this.localPath(), entry.name);
       await this.runTransfer("down", entry.name, (id) =>
-        this.sftp.download(this.host().id, entry.path, dest, id),
+        entry.is_dir
+          ? this.sftp.downloadDir(hostId, entry.path, dest, id)
+          : this.sftp.download(hostId, entry.path, dest, id),
       );
     }
     // Clear the source selection so the next pick starts fresh.
     this.clearSel("remote");
     await this.openLocal(this.localPath());
+  }
+
+  private hostLabel(): string {
+    const h = this.host();
+    return h.name || h.hostname;
+  }
+
+  /** Ask before replacing existing items at the destination. Resolves true to
+   *  proceed, false to cancel. */
+  private confirmOverwrite(names: string[], where: string): Promise<boolean> {
+    const shown = names.slice(0, 3).join(", ");
+    const more = names.length > 3 ? `, and ${names.length - 3} more` : "";
+    const title =
+      names.length === 1
+        ? `"${names[0]}" already exists in ${where}. Overwrite?`
+        : `${names.length} items already exist in ${where} (${shown}${more}). Overwrite?`;
+    return new Promise((resolve) => {
+      this.askValue = "";
+      this.ask.set({
+        title,
+        value: "",
+        confirm: true,
+        okLabel: "Overwrite",
+        onOk: () => resolve(true),
+        onCancel: () => resolve(false),
+      });
+    });
   }
 
   private async runTransfer(
@@ -318,7 +363,9 @@ export class SftpBrowserComponent {
   }
 
   cancelAsk(): void {
+    const a = this.ask();
     this.ask.set(null);
+    a?.onCancel?.();
   }
 
   // --- helpers ---
