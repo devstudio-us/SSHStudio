@@ -276,7 +276,14 @@ pub(crate) async fn open_authenticated(
         reject_reason: reject_reason.clone(),
     };
 
-    let config = Arc::new(client::Config::default());
+    // Send keepalives on idle so the server (or a NAT/firewall) doesn't silently
+    // drop the connection — which would otherwise surface later as a broken shell
+    // or an SFTP "session closed". Close the transport after 3 unanswered
+    // keepalives (~90s) so a truly dead link is noticed instead of hanging.
+    let config = Arc::new(client::Config {
+        keepalive_interval: Some(std::time::Duration::from_secs(30)),
+        ..Default::default()
+    });
     let mut session = client::connect(config, server_id.clone(), handler)
         .await
         .map_err(|e| {

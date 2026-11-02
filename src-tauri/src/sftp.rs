@@ -40,6 +40,12 @@ impl SftpManager {
     fn get(&self, host_id: &str) -> Option<Arc<SftpConn>> {
         self.conns.lock().unwrap().get(host_id).cloned()
     }
+
+    /// Forget a host's cached session (e.g. after it was found to be dead), so
+    /// the next `session_for` opens a fresh one.
+    fn evict(&self, host_id: &str) {
+        self.conns.lock().unwrap().remove(host_id);
+    }
 }
 
 /// A file or directory entry, used for both panes (local and remote).
@@ -100,6 +106,48 @@ async fn session_for(
     Ok(map.entry(host_id.to_string()).or_insert(conn).clone())
 }
 
+/// Run an SFTP operation against the host's session, transparently reopening a
+/// session that has gone stale (e.g. the server dropped an idle connection) and
+/// retrying the operation once. `op` is `Fn` — callable twice — so it must
+/// borrow its inputs rather than consume them.
+async fn with_session<F, Fut, T>(
+    app: &AppHandle,
+    ssh: &SessionManager,
+    sftp: &SftpManager,
+    host_id: &str,
+    op: F,
+) -> Result<T, String>
+where
+    F: Fn(Arc<SftpConn>) -> Fut,
+    Fut: std::future::Future<Output = Result<T, String>>,
+{
+    let conn = session_for(app, ssh, sftp, host_id).await?;
+    match op(conn).await {
+        Err(e) if is_stale_session(&e) => {
+            // The cached session (or its SSH transport) is dead; drop it and
+            // open a fresh one, then try the operation one more time.
+            sftp.evict(host_id);
+            let conn = session_for(app, ssh, sftp, host_id).await?;
+            op(conn).await
+        }
+        result => result,
+    }
+}
+
+/// Whether an error means the SFTP session (or its SSH transport) has died, so
+/// reopening it is worth a try. russh-sftp reports a dropped worker as the text
+/// "session closed"; a broken transport surfaces as an EOF / reset I/O error.
+fn is_stale_session(msg: &str) -> bool {
+    let m = msg.to_ascii_lowercase();
+    m.contains("session closed")
+        || m.contains("channel closed")
+        || m.contains("early eof")
+        || m.contains("unexpected eof")
+        || m.contains("connection reset")
+        || m.contains("broken pipe")
+        || m.contains("not connected")
+}
+
 /// Join a POSIX directory path and an entry name.
 fn remote_join(dir: &str, name: &str) -> String {
     if dir.is_empty() || dir == "/" {
@@ -119,11 +167,13 @@ pub async fn sftp_home(
     sftp: State<'_, SftpManager>,
     host_id: String,
 ) -> Result<String, String> {
-    let conn = session_for(&app, &ssh, &sftp, &host_id).await?;
-    conn.sftp
-        .canonicalize(".")
-        .await
-        .map_err(|e| format!("Could not resolve home directory: {e}"))
+    with_session(&app, &ssh, &sftp, &host_id, |conn| async move {
+        conn.sftp
+            .canonicalize(".")
+            .await
+            .map_err(|e| format!("Could not resolve home directory: {e}"))
+    })
+    .await
 }
 
 /// List a remote directory.
@@ -135,29 +185,32 @@ pub async fn sftp_list(
     host_id: String,
     path: String,
 ) -> Result<Vec<FileEntry>, String> {
-    let conn = session_for(&app, &ssh, &sftp, &host_id).await?;
-    let read = conn
-        .sftp
-        .read_dir(path.as_str())
-        .await
-        .map_err(|e| format!("Could not list {path}: {e}"))?;
+    let path = path.as_str();
+    with_session(&app, &ssh, &sftp, &host_id, |conn| async move {
+        let read = conn
+            .sftp
+            .read_dir(path)
+            .await
+            .map_err(|e| format!("Could not list {path}: {e}"))?;
 
-    let mut entries: Vec<FileEntry> = read
-        .map(|e| {
-            let meta = e.metadata();
-            let name = e.file_name();
-            FileEntry {
-                path: remote_join(&path, &name),
-                name,
-                is_dir: meta.is_dir(),
-                size: meta.size.unwrap_or(0),
-                modified: meta.mtime.map(|t| t as u64),
-            }
-        })
-        .filter(|e| e.name != "." && e.name != "..")
-        .collect();
-    sort_entries(&mut entries);
-    Ok(entries)
+        let mut entries: Vec<FileEntry> = read
+            .map(|e| {
+                let meta = e.metadata();
+                let name = e.file_name();
+                FileEntry {
+                    path: remote_join(path, &name),
+                    name,
+                    is_dir: meta.is_dir(),
+                    size: meta.size.unwrap_or(0),
+                    modified: meta.mtime.map(|t| t as u64),
+                }
+            })
+            .filter(|e| e.name != "." && e.name != "..")
+            .collect();
+        sort_entries(&mut entries);
+        Ok(entries)
+    })
+    .await
 }
 
 #[tauri::command]
@@ -168,11 +221,14 @@ pub async fn sftp_mkdir(
     host_id: String,
     path: String,
 ) -> Result<(), String> {
-    let conn = session_for(&app, &ssh, &sftp, &host_id).await?;
-    conn.sftp
-        .create_dir(path)
-        .await
-        .map_err(|e| format!("Could not create folder: {e}"))
+    let path = path.as_str();
+    with_session(&app, &ssh, &sftp, &host_id, |conn| async move {
+        conn.sftp
+            .create_dir(path)
+            .await
+            .map_err(|e| format!("Could not create folder: {e}"))
+    })
+    .await
 }
 
 #[tauri::command]
@@ -184,11 +240,14 @@ pub async fn sftp_rename(
     from: String,
     to: String,
 ) -> Result<(), String> {
-    let conn = session_for(&app, &ssh, &sftp, &host_id).await?;
-    conn.sftp
-        .rename(from, to)
-        .await
-        .map_err(|e| format!("Could not rename: {e}"))
+    let (from, to) = (from.as_str(), to.as_str());
+    with_session(&app, &ssh, &sftp, &host_id, |conn| async move {
+        conn.sftp
+            .rename(from, to)
+            .await
+            .map_err(|e| format!("Could not rename: {e}"))
+    })
+    .await
 }
 
 #[tauri::command]
@@ -200,13 +259,16 @@ pub async fn sftp_delete(
     path: String,
     is_dir: bool,
 ) -> Result<(), String> {
-    let conn = session_for(&app, &ssh, &sftp, &host_id).await?;
-    let res = if is_dir {
-        conn.sftp.remove_dir(path).await
-    } else {
-        conn.sftp.remove_file(path).await
-    };
-    res.map_err(|e| format!("Could not delete: {e}"))
+    let path = path.as_str();
+    with_session(&app, &ssh, &sftp, &host_id, |conn| async move {
+        let res = if is_dir {
+            conn.sftp.remove_dir(path).await
+        } else {
+            conn.sftp.remove_file(path).await
+        };
+        res.map_err(|e| format!("Could not delete: {e}"))
+    })
+    .await
 }
 
 /// Download a remote file to a local path, emitting progress.
@@ -220,29 +282,34 @@ pub async fn sftp_download(
     local_path: String,
     transfer_id: String,
 ) -> Result<(), String> {
-    let conn = session_for(&app, &ssh, &sftp, &host_id).await?;
-    let total = conn
-        .sftp
-        .metadata(remote_path.as_str())
-        .await
-        .ok()
-        .and_then(|m| m.size)
-        .unwrap_or(0);
+    let app = &app;
+    let (remote_path, local_path, transfer_id) =
+        (remote_path.as_str(), local_path.as_str(), transfer_id.as_str());
+    with_session(app, &ssh, &sftp, &host_id, |conn| async move {
+        let total = conn
+            .sftp
+            .metadata(remote_path)
+            .await
+            .ok()
+            .and_then(|m| m.size)
+            .unwrap_or(0);
 
-    let mut remote = conn
-        .sftp
-        .open(remote_path.as_str())
-        .await
-        .map_err(|e| format!("Could not open remote file: {e}"))?;
-    let mut local = tokio::fs::File::create(&local_path)
-        .await
-        .map_err(|e| format!("Could not create local file: {e}"))?;
+        let mut remote = conn
+            .sftp
+            .open(remote_path)
+            .await
+            .map_err(|e| format!("Could not open remote file: {e}"))?;
+        let mut local = tokio::fs::File::create(local_path)
+            .await
+            .map_err(|e| format!("Could not create local file: {e}"))?;
 
-    copy_with_progress(&app, &transfer_id, &mut remote, &mut local, total).await?;
-    local
-        .flush()
-        .await
-        .map_err(|e| format!("Could not finish download: {e}"))
+        copy_with_progress(app, transfer_id, &mut remote, &mut local, total).await?;
+        local
+            .flush()
+            .await
+            .map_err(|e| format!("Could not finish download: {e}"))
+    })
+    .await
 }
 
 /// Upload a local file to a remote path, emitting progress.
@@ -256,22 +323,27 @@ pub async fn sftp_upload(
     remote_path: String,
     transfer_id: String,
 ) -> Result<(), String> {
-    let conn = session_for(&app, &ssh, &sftp, &host_id).await?;
-    let mut local = tokio::fs::File::open(&local_path)
-        .await
-        .map_err(|e| format!("Could not open local file: {e}"))?;
-    let total = local.metadata().await.map(|m| m.len()).unwrap_or(0);
-    let mut remote = conn
-        .sftp
-        .create(remote_path.as_str())
-        .await
-        .map_err(|e| format!("Could not create remote file: {e}"))?;
+    let app = &app;
+    let (local_path, remote_path, transfer_id) =
+        (local_path.as_str(), remote_path.as_str(), transfer_id.as_str());
+    with_session(app, &ssh, &sftp, &host_id, |conn| async move {
+        let mut local = tokio::fs::File::open(local_path)
+            .await
+            .map_err(|e| format!("Could not open local file: {e}"))?;
+        let total = local.metadata().await.map(|m| m.len()).unwrap_or(0);
+        let mut remote = conn
+            .sftp
+            .create(remote_path)
+            .await
+            .map_err(|e| format!("Could not create remote file: {e}"))?;
 
-    copy_with_progress(&app, &transfer_id, &mut local, &mut remote, total).await?;
-    remote
-        .shutdown()
-        .await
-        .map_err(|e| format!("Could not finish upload: {e}"))
+        copy_with_progress(app, transfer_id, &mut local, &mut remote, total).await?;
+        remote
+            .shutdown()
+            .await
+            .map_err(|e| format!("Could not finish upload: {e}"))
+    })
+    .await
 }
 
 /// Close and forget a host's SFTP session (e.g. when its Files view is closed).
