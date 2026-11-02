@@ -1,6 +1,7 @@
 mod hosts;
 mod metrics;
 mod notes;
+mod secrets;
 mod sftp;
 mod ssh;
 
@@ -17,6 +18,9 @@ pub fn run() {
             hosts::add_host,
             hosts::update_host,
             hosts::delete_host,
+            secrets::save_host_password,
+            secrets::delete_host_password,
+            secrets::has_host_password,
             ssh::connect,
             ssh::attach,
             ssh::disconnect,

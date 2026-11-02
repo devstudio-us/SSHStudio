@@ -28,6 +28,9 @@ uuid = { version = "1", features = ["v4"] }
 russh = "0.52"
 russh-sftp = "2"
 tokio = { version = "1", features = ["sync", "macros", "rt-multi-thread", "io-util", "time"] }
+# OS keychain for saved host passwords (never written to the config files).
+# Pure-Rust backends so Linux needs no extra system libs (dbus/openssl).
+keyring = { version = "3", default-features = false, features = ["apple-native", "windows-native", "sync-secret-service", "crypto-rust"] }
 
 
 # Read the optimization guideline for more details: https://tauri.app/concept/size/#cargo-configuration

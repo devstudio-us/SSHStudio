@@ -304,7 +304,17 @@
             </div>
           </label>
         } @else {
-          <p class="form-hint">You’ll be asked for the password when you connect — it’s never saved.</p>
+          <label>
+            <span class="cap">Password<span class="hint">{{ editHasPassword() ? "(saved — leave blank to keep)" : "(optional)" }}</span></span>
+            <input
+              name="password"
+              type="password"
+              autocomplete="off"
+              [(ngModel)]="form.password"
+              [placeholder]="editHasPassword() ? '••••••••' : 'Saved to your OS keychain'"
+            />
+          </label>
+          <p class="form-hint">Saved securely in your OS keychain (never in the config file). Leave blank to be asked each time you connect.</p>
         }
         <label>
           <span class="cap">Tags<span class="hint">(comma-separated)</span></span>

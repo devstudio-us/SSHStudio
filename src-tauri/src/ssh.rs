@@ -326,7 +326,14 @@ pub(crate) async fn open_authenticated(
                 .success()
         }
         None => {
-            let pw = secret.ok_or("PASSWORD_REQUIRED")?;
+            // Use the supplied secret; otherwise fall back to a password saved
+            // for this host in the OS keychain, and only then ask to prompt.
+            let stored = if secret.is_none() {
+                crate::secrets::load_host_password(&host.id)
+            } else {
+                None
+            };
+            let pw = secret.or(stored.as_deref()).ok_or("PASSWORD_REQUIRED")?;
             session
                 .authenticate_password(&host.user, pw)
                 .await

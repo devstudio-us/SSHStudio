@@ -15,10 +15,11 @@ export class HostsService {
     this.hosts.set(await invoke<Host[]>("list_hosts"));
   }
 
-  async add(host: NewHost): Promise<void> {
+  async add(host: NewHost): Promise<Host> {
     // `id` is minted server-side; send an empty one to satisfy the struct.
-    await invoke<Host>("add_host", { host: { ...host, id: "" } });
+    const created = await invoke<Host>("add_host", { host: { ...host, id: "" } });
     await this.refresh();
+    return created;
   }
 
   async update(host: Host): Promise<void> {

@@ -20,6 +20,7 @@ import { SelectComponent, SelectOption } from "../select/select.component";
 import { AutofocusDirective } from "../directives/autofocus.directive";
 import { NotesService } from "../services/notes.service";
 import { SftpService } from "../services/sftp.service";
+import { SecretsService } from "../services/secrets.service";
 import { Host } from "../models/host.model";
 import { Note } from "../models/note.model";
 
@@ -51,8 +52,11 @@ interface HostForm {
   hostname: string;
   port: number;
   user: string;
-  /** How to authenticate: prompt for a password, or use a private key file. */
+  /** How to authenticate: a saved/prompted password, or a private key file. */
   authMethod: "password" | "key";
+  /** Password typed in the form (saved to the OS keychain, never to config).
+   *  Blank when editing keeps any already-saved password. */
+  password: string;
   identity_file: string;
   tags: string;
   notes: string;
@@ -94,6 +98,7 @@ export class AppComponent implements OnInit {
   private readonly ssh = inject(SshService);
   private readonly notesService = inject(NotesService);
   private readonly sftp = inject(SftpService);
+  private readonly secrets = inject(SecretsService);
   private readonly cdr = inject(ChangeDetectorRef);
 
   readonly hosts = this.hostsService.hosts;
@@ -144,6 +149,9 @@ export class AppComponent implements OnInit {
   readonly showHostForm = signal(false);
   /** null = adding a new host; otherwise the id of the host being edited. */
   readonly editingHostId = signal<string | null>(null);
+  /** True while editing a host that already has a password saved (shows a hint
+   *  that leaving the field blank keeps it). */
+  readonly editHasPassword = signal(false);
   form: HostForm = AppComponent.blankForm();
 
   readonly secretPrompt = signal<SecretPrompt | null>(null);
@@ -441,6 +449,7 @@ export class AppComponent implements OnInit {
   openAddForm(): void {
     this.form = AppComponent.blankForm();
     this.editingHostId.set(null);
+    this.editHasPassword.set(false);
     this.showHostForm.set(true);
   }
 
@@ -453,10 +462,17 @@ export class AppComponent implements OnInit {
       port: host.port,
       user: host.user,
       authMethod: identity.length > 0 ? "key" : "password",
+      password: "",
       identity_file: identity,
       tags: host.tags.join(", "),
       notes: host.notes,
     };
+    // Reflect whether a password is already saved for this host.
+    this.editHasPassword.set(false);
+    void this.secrets.hasHostPassword(host.id).then((has) => {
+      this.editHasPassword.set(has);
+      this.cdr.markForCheck();
+    });
     this.editingHostId.set(host.id);
     this.showHostForm.set(true);
   }
@@ -501,10 +517,10 @@ export class AppComponent implements OnInit {
   async saveHost(): Promise<void> {
     if (!this.hostFormValid()) return;
     this.error.set("");
-    // Only keep the key path when the key method is chosen; password auth stores
-    // no secret and connects by prompting at connect time.
+    // Only keep the key path when the key method is chosen.
     const identity = this.form.identity_file.trim();
     const useKey = this.form.authMethod === "key" && identity.length > 0;
+    const password = this.form.password;
     const fields = {
       name: this.form.name.trim(),
       hostname: this.form.hostname.trim(),
@@ -516,10 +532,16 @@ export class AppComponent implements OnInit {
     };
     try {
       const editingId = this.editingHostId();
-      if (editingId) {
-        await this.hostsService.update({ id: editingId, ...fields });
-      } else {
-        await this.hostsService.add(fields);
+      const hostId = editingId
+        ? (await this.hostsService.update({ id: editingId, ...fields }), editingId)
+        : (await this.hostsService.add(fields)).id;
+      // Keep the keychain in step with the chosen method: save a typed password,
+      // and drop any stored one when switching to key auth. A blank password on
+      // edit leaves the saved one untouched.
+      if (useKey) {
+        await this.secrets.deleteHostPassword(hostId);
+      } else if (password.length > 0) {
+        await this.secrets.saveHostPassword(hostId, password);
       }
       this.showHostForm.set(false);
     } catch (e) {
@@ -541,6 +563,8 @@ export class AppComponent implements OnInit {
     this.error.set("");
     try {
       await this.hostsService.remove(host.id);
+      // Don't leave an orphaned password behind in the keychain.
+      await this.secrets.deleteHostPassword(host.id);
     } catch (e) {
       this.error.set(String(e));
     }
@@ -715,6 +739,7 @@ export class AppComponent implements OnInit {
       port: 22,
       user: "",
       authMethod: "password",
+      password: "",
       identity_file: "",
       tags: "",
       notes: "",
