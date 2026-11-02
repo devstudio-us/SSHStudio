@@ -1,4 +1,10 @@
+/* Fill the grid cell so every card is the same height (the grid equalizes rows
+   to the tallest card via grid-auto-rows: 1fr). */
+:host {
+  display: flex;
+}
 .card {
+  flex: 1;
   background-color: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius);
@@ -8,9 +14,7 @@
   flex-direction: column;
   gap: 0.8rem;
   overflow: hidden;
-  /* Keep every card the same height; the connected (metrics) card is the
-     tallest, so idle/failed cards fill to match and center their content. */
-  min-height: 15rem;
+  min-height: 14rem; /* floor when every card is short (none connected) */
 }
 /* A failed connection: red border is the at-a-glance signal across the grid. */
 .card.err {
@@ -262,6 +266,7 @@ header {
   color: var(--text);
 }
 footer {
+  margin-top: auto; /* anchor to the bottom when the card is stretched taller */
   display: flex;
   gap: 1.5rem;
   border-top: 1px solid var(--border);
