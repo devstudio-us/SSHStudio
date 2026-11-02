@@ -318,9 +318,14 @@ export class AppComponent implements OnInit {
       } else {
         // A non-auth failure (host down, refused, timeout, bad key, …).
         // Record it against this host so its dashboard card shows which
-        // server failed and why, and tag the global banner with the name.
+        // server failed and why. On the dashboard the card already surfaces
+        // it, so skip the global banner there; show it only when the failure
+        // happens off-dashboard (e.g. opening a terminal), where no card is
+        // visible.
         this.setConnectError(host.id, msg);
-        this.error.set(`${host.name || host.hostname}: ${msg}`);
+        if (this.view() !== "dashboard") {
+          this.error.set(`${host.name || host.hostname}: ${msg}`);
+        }
       }
     }
   }

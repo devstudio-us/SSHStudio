@@ -7,6 +7,7 @@
   display: flex;
   flex-direction: column;
   gap: 0.8rem;
+  overflow: hidden; /* so the full-bleed error strip clips to the rounded corners */
 }
 .card.offline {
   opacity: 0.85;
@@ -16,24 +17,56 @@ header {
   align-items: center;
   gap: 0.5rem;
 }
-.dot {
-  width: 9px;
-  height: 9px;
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  flex-shrink: 0;
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  padding: 0.1rem 0.5rem;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  white-space: nowrap;
+}
+.chip .cdot {
+  width: 6px;
+  height: 6px;
   border-radius: 50%;
   flex-shrink: 0;
+}
+.chip.gray {
+  background-color: var(--surface-2);
+  border-color: var(--border);
+  color: var(--text-muted);
+}
+.chip.gray .cdot {
   background-color: var(--text-faint);
 }
-.dot.ok {
+.chip.green {
+  background-color: color-mix(in srgb, #22c55e 15%, transparent);
+  border-color: color-mix(in srgb, #22c55e 32%, transparent);
+  color: color-mix(in srgb, #22c55e 80%, var(--text));
+}
+.chip.green .cdot {
   background-color: #22c55e;
 }
-.dot.error {
-  background-color: var(--danger);
+.chip.amber {
+  background-color: color-mix(in srgb, #eab308 16%, transparent);
+  border-color: color-mix(in srgb, #eab308 34%, transparent);
+  color: color-mix(in srgb, #eab308 72%, var(--text));
 }
-.dot.pending {
+.chip.amber .cdot {
   background-color: #eab308;
 }
-.dot.offline {
-  background-color: var(--text-faint);
+.chip.red {
+  background-color: var(--danger-soft);
+  border-color: color-mix(in srgb, var(--danger) 32%, transparent);
+  color: var(--danger);
+}
+.chip.red .cdot {
+  background-color: var(--danger);
 }
 .idle {
   display: flex;
@@ -46,17 +79,59 @@ header {
   font-size: 0.82rem;
   color: var(--text-muted);
 }
-.connect-error {
+/* Failed-connect treatment: a tinted strip across the card bottom, with the
+   raw error tucked behind a "Details" disclosure above it. */
+.strip {
+  margin: 0 -1.1rem -1rem;
+  padding: 0.7rem 1.1rem;
   display: flex;
-  align-items: flex-start;
-  gap: 0.35rem;
-  font-size: 0.82rem;
-  color: var(--danger);
-  min-width: 0;
+  align-items: center;
+  gap: 0.55rem;
+  background-color: var(--danger-soft);
+  border-top: 1px solid color-mix(in srgb, var(--danger) 26%, transparent);
+  border-radius: 0 0 var(--radius) var(--radius);
 }
-.connect-error svg {
+.strip > svg {
   flex: 0 0 auto;
-  margin-top: 0.1rem;
+  color: var(--danger);
+}
+.strip-msg {
+  flex: 1;
+  min-width: 0;
+  font-size: 0.82rem;
+  color: var(--text);
+}
+details.raw > summary {
+  list-style: none;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.72rem;
+  color: var(--text-faint);
+}
+details.raw > summary::-webkit-details-marker {
+  display: none;
+}
+details.raw summary .tw {
+  display: inline-block;
+  transition: transform 0.15s ease;
+}
+details.raw[open] summary .tw {
+  transform: rotate(90deg);
+}
+details.raw pre {
+  margin: 0.4rem 0 0;
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: 0.72rem;
+  line-height: 1.45;
+  color: var(--text-muted);
+  background-color: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 0.5rem 0.6rem;
+  white-space: pre-wrap;
+  word-break: break-word;
 }
 .connect {
   padding: 0.4rem 0.9rem;

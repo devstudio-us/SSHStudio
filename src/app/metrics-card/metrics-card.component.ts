@@ -16,6 +16,36 @@ import { Host } from "../models/host.model";
 
 type Status = "pending" | "ok" | "error";
 
+/** A connection failure turned into a short chip label, a plain-English
+ *  sentence, and the raw text (kept for the "Details" disclosure). */
+interface ConnectErrorInfo {
+  chip: string;
+  message: string;
+  raw: string;
+}
+
+/** Map a raw connection error into something a person can read. The raw text is
+ *  preserved so the card can still reveal the exact message on demand. */
+function humanizeConnectError(raw: string | undefined): ConnectErrorInfo | null {
+  if (!raw) return null;
+  const s = raw.toLowerCase();
+  const info = (chip: string, message: string): ConnectErrorInfo => ({ chip, message, raw });
+
+  if (s.includes("timed out") || s.includes("timeout") || s.includes("os error 60") || s.includes("os error 10060"))
+    return info("Timed out", "Connection timed out — the server didn’t respond.");
+  if (s.includes("refused") || s.includes("os error 61") || s.includes("os error 10061"))
+    return info("Refused", "Connection refused — nothing is listening on that port.");
+  if (s.includes("unreachable") || s.includes("no route") || s.includes("os error 65") || s.includes("os error 51") || s.includes("os error 101") || s.includes("os error 10065"))
+    return info("Unreachable", "Host unreachable — check the address and your network.");
+  if (s.includes("not known") || s.includes("failed to lookup") || s.includes("nodename") || s.includes("resolve") || s.includes("dns"))
+    return info("Unknown host", "Couldn’t find that host — check the hostname.");
+  if (s.includes("host key mismatch") || s.includes("known_hosts"))
+    return info("Key changed", "The server’s host key changed — review it before reconnecting.");
+  if (s.includes("authentication") || s.includes("auth failed"))
+    return info("Auth failed", "Authentication failed — check the username, key or password.");
+  return info("Can’t connect", "Couldn’t connect to the server.");
+}
+
 /**
  * A dashboard card for one host. Starts the backend poller on init, listens for
  * `metrics-<id>` snapshots, and stops the poller on destroy. All formatting of
@@ -50,6 +80,23 @@ export class MetricsCardComponent implements OnDestroy {
     const m = this.metrics();
     if (!m) return "pending";
     return m.error ? "error" : "ok";
+  });
+
+  /** The connection failure (if any), humanized for display. */
+  readonly errorInfo = computed(() => humanizeConnectError(this.connectError()));
+
+  /** The status pill shown next to the host name. */
+  readonly chip = computed<{ cls: string; label: string }>(() => {
+    if (this.connecting()) return { cls: "amber", label: "Connecting…" };
+    if (this.monitored()) {
+      const s = this.status();
+      if (s === "ok") return { cls: "green", label: "Connected" };
+      if (s === "pending") return { cls: "amber", label: "Connecting…" };
+      return { cls: "red", label: "Lost connection" };
+    }
+    const err = this.errorInfo();
+    if (err) return { cls: "red", label: err.chip };
+    return { cls: "gray", label: "Not connected" };
   });
 
   constructor() {

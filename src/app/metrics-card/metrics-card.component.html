@@ -1,7 +1,7 @@
 <div class="card" [class.offline]="monitored() && status() === 'error'">
   <header>
-    <span class="dot" [class]="monitored() ? status() : 'offline'"></span>
     <span class="name">{{ host().name || host().hostname }}</span>
+    <span class="chip" [class]="chip().cls"><span class="cdot"></span>{{ chip().label }}</span>
     <div class="card-actions">
       <button class="icon" type="button" (click)="openTerminal.emit(host())" title="Open terminal" aria-label="Open terminal">
         <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -45,31 +45,43 @@
   }
 
   @if (!monitored()) {
-    <div class="idle">
-      @if (connectError(); as err) {
-        <span class="connect-error" role="alert">
-          <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="12" cy="12" r="10" /><path d="M12 8v4M12 16h.01" />
-          </svg>
-          {{ err }}
-        </span>
-      } @else {
-        <span class="idle-text">Not connected — connect to see live metrics.</span>
+    @if (errorInfo(); as err) {
+      @if (err.raw !== err.message) {
+        <details class="raw">
+          <summary><span class="tw">›</span> Details</summary>
+          <pre>{{ err.raw }}</pre>
+        </details>
       }
-      <button class="primary connect" type="button" [disabled]="connecting()" (click)="connect.emit(host())">
-        @if (connecting()) {
-          <span class="spinner" aria-hidden="true"></span>
-          Connecting…
-        } @else {
-          {{ connectError() ? "Retry" : "Connect" }}
-        }
-      </button>
-    </div>
+      <div class="strip" role="alert">
+        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 9v4m0 4h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z" />
+        </svg>
+        <span class="strip-msg">{{ err.message }}</span>
+        <button class="primary connect" type="button" [disabled]="connecting()" (click)="connect.emit(host())">
+          @if (connecting()) {
+            <span class="spinner" aria-hidden="true"></span>
+            Connecting…
+          } @else {
+            Retry
+          }
+        </button>
+      </div>
+    } @else {
+      <div class="idle">
+        <span class="idle-text">Not connected — connect to see live metrics.</span>
+        <button class="primary connect" type="button" [disabled]="connecting()" (click)="connect.emit(host())">
+          @if (connecting()) {
+            <span class="spinner" aria-hidden="true"></span>
+            Connecting…
+          } @else {
+            Connect
+          }
+        </button>
+      </div>
+    }
   } @else {
     @if (status() === "error") {
       <p class="msg">{{ metrics()?.error || "Disconnected" }}</p>
-    } @else if (status() === "pending") {
-      <p class="msg">Connecting…</p>
     }
 
     <div class="bars" [class.dim]="status() !== 'ok'">
