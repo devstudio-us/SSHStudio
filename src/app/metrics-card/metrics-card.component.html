@@ -1,4 +1,4 @@
-<div class="card" [class.offline]="monitored() && status() === 'error'">
+<div class="card" [class.err]="hasError()">
   <header>
     <span class="name">{{ host().name || host().hostname }}</span>
     <div class="card-actions">
@@ -43,44 +43,29 @@
     </div>
   }
 
-  <span class="chip" [class]="chip().cls"><span class="cdot"></span>{{ chip().label }}</span>
-
   @if (!monitored()) {
-    @if (errorInfo(); as err) {
-      @if (err.raw !== err.message) {
-        <details class="raw">
-          <summary><span class="tw">›</span> Details</summary>
-          <pre>{{ err.raw }}</pre>
-        </details>
-      }
-      <div class="strip" role="alert">
-        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M12 9v4m0 4h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z" />
-        </svg>
-        <span class="strip-msg">{{ err.message }}</span>
-        <button class="primary connect" type="button" [disabled]="connecting()" (click)="connect.emit(host())">
-          @if (connecting()) {
-            <span class="spinner" aria-hidden="true"></span>
-            Connecting…
-          } @else {
-            Retry
-          }
-        </button>
-      </div>
-    } @else {
-      <div class="idle">
+    <!-- Idle / failed: content centered so every card holds the same height. -->
+    <div class="state">
+      <span class="chip" [class]="chip().cls"><span class="cdot"></span>{{ chip().label }}</span>
+      @if (errorInfo(); as err) {
+        <div class="state-msg" [title]="err.raw">
+          <span class="st-title">{{ err.title }}</span>
+          <span class="st-detail">{{ err.detail }}</span>
+        </div>
+      } @else {
         <span class="idle-text">Connect to see live metrics.</span>
-        <button class="primary connect" type="button" [disabled]="connecting()" (click)="connect.emit(host())">
-          @if (connecting()) {
-            <span class="spinner" aria-hidden="true"></span>
-            Connecting…
-          } @else {
-            Connect
-          }
-        </button>
-      </div>
-    }
+      }
+      <button class="primary connect" type="button" [disabled]="connecting()" (click)="connect.emit(host())">
+        @if (connecting()) {
+          <span class="spinner" aria-hidden="true"></span>
+          Connecting…
+        } @else {
+          {{ errorInfo() ? "Retry" : "Connect" }}
+        }
+      </button>
+    </div>
   } @else {
+    <span class="chip" [class]="chip().cls"><span class="cdot"></span>{{ chip().label }}</span>
     @if (status() === "error") {
       <p class="msg">{{ metrics()?.error || "Disconnected" }}</p>
     }

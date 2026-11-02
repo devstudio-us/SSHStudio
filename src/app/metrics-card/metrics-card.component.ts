@@ -16,34 +16,34 @@ import { Host } from "../models/host.model";
 
 type Status = "pending" | "ok" | "error";
 
-/** A connection failure turned into a short chip label, a plain-English
- *  sentence, and the raw text (kept for the "Details" disclosure). */
+/** A connection failure turned into a short chip label, a title and a one-line
+ *  explanation. `raw` is the original text, kept for the hover tooltip. */
 interface ConnectErrorInfo {
   chip: string;
-  message: string;
+  title: string;
+  detail: string;
   raw: string;
 }
 
-/** Map a raw connection error into something a person can read. The raw text is
- *  preserved so the card can still reveal the exact message on demand. */
+/** Map a raw connection error into something a person can read. */
 function humanizeConnectError(raw: string | undefined): ConnectErrorInfo | null {
   if (!raw) return null;
   const s = raw.toLowerCase();
-  const info = (chip: string, message: string): ConnectErrorInfo => ({ chip, message, raw });
+  const info = (chip: string, title: string, detail: string): ConnectErrorInfo => ({ chip, title, detail, raw });
 
   if (s.includes("timed out") || s.includes("timeout") || s.includes("os error 60") || s.includes("os error 10060"))
-    return info("Timed out", "Connection timed out — the server didn’t respond.");
+    return info("Timed out", "Connection timed out", "The server didn’t respond.");
   if (s.includes("refused") || s.includes("os error 61") || s.includes("os error 10061"))
-    return info("Refused", "Connection refused — nothing is listening on that port.");
+    return info("Refused", "Connection refused", "Nothing is listening on that port.");
   if (s.includes("unreachable") || s.includes("no route") || s.includes("os error 65") || s.includes("os error 51") || s.includes("os error 101") || s.includes("os error 10065"))
-    return info("Unreachable", "Host unreachable — check the address and your network.");
+    return info("Unreachable", "Host unreachable", "Check the address and your network.");
   if (s.includes("not known") || s.includes("failed to lookup") || s.includes("nodename") || s.includes("resolve") || s.includes("dns"))
-    return info("Unknown host", "Couldn’t find that host — check the hostname.");
+    return info("Unknown host", "Host not found", "Check the hostname.");
   if (s.includes("host key mismatch") || s.includes("known_hosts"))
-    return info("Key changed", "The server’s host key changed — review it before reconnecting.");
+    return info("Key changed", "Host key changed", "Review it before reconnecting.");
   if (s.includes("authentication") || s.includes("auth failed"))
-    return info("Auth failed", "Authentication failed — check the username, key or password.");
-  return info("Can’t connect", "Couldn’t connect to the server.");
+    return info("Auth failed", "Authentication failed", "Check the username, key or password.");
+  return info("Can’t connect", "Couldn’t connect", "The server didn’t respond.");
 }
 
 /**
@@ -84,6 +84,13 @@ export class MetricsCardComponent implements OnDestroy {
 
   /** The connection failure (if any), humanized for display. */
   readonly errorInfo = computed(() => humanizeConnectError(this.connectError()));
+
+  /** Whether this card is in a failed state (red border). */
+  readonly hasError = computed(
+    () =>
+      (!this.monitored() && !!this.errorInfo()) ||
+      (this.monitored() && this.status() === "error"),
+  );
 
   /** The status pill shown next to the host name. */
   readonly chip = computed<{ cls: string; label: string }>(() => {

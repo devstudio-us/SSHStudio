@@ -7,10 +7,14 @@
   display: flex;
   flex-direction: column;
   gap: 0.8rem;
-  overflow: hidden; /* so the full-bleed error strip clips to the rounded corners */
+  overflow: hidden;
+  /* Keep every card the same height; the connected (metrics) card is the
+     tallest, so idle/failed cards fill to match and center their content. */
+  min-height: 15rem;
 }
-.card.offline {
-  opacity: 0.85;
+/* A failed connection: red border is the at-a-glance signal across the grid. */
+.card.err {
+  border-color: var(--danger);
 }
 header {
   display: flex;
@@ -69,70 +73,37 @@ header {
 .chip.red .cdot {
   background-color: var(--danger);
 }
-.idle {
+/* Idle / failed state: centered in the card so the fixed height reads as
+   intentional rather than empty. */
+.state {
+  flex: 1;
   display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: space-between;
-  gap: 0.75rem;
-  padding: 0.6rem 0;
+  justify-content: center;
+  text-align: center;
+  gap: 0.6rem;
+  padding: 0.3rem 0;
+}
+.state .chip {
+  align-self: center;
+}
+.state-msg {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+.st-title {
+  font-size: 0.88rem;
+  color: var(--text);
+}
+.st-detail {
+  font-size: 0.8rem;
+  color: var(--text-muted);
 }
 .idle-text {
   font-size: 0.82rem;
   color: var(--text-muted);
-}
-/* Failed-connect treatment: a tinted strip across the card bottom, with the
-   raw error tucked behind a "Details" disclosure above it. */
-.strip {
-  margin: 0 -1.1rem -1rem;
-  padding: 0.7rem 1.1rem;
-  display: flex;
-  align-items: center;
-  gap: 0.55rem;
-  background-color: var(--danger-soft);
-  border-top: 1px solid color-mix(in srgb, var(--danger) 26%, transparent);
-  border-radius: 0 0 var(--radius) var(--radius);
-}
-.strip > svg {
-  flex: 0 0 auto;
-  color: var(--danger);
-}
-.strip-msg {
-  flex: 1;
-  min-width: 0;
-  font-size: 0.82rem;
-  color: var(--text);
-}
-details.raw > summary {
-  list-style: none;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.3rem;
-  font-size: 0.72rem;
-  color: var(--text-faint);
-}
-details.raw > summary::-webkit-details-marker {
-  display: none;
-}
-details.raw summary .tw {
-  display: inline-block;
-  transition: transform 0.15s ease;
-}
-details.raw[open] summary .tw {
-  transform: rotate(90deg);
-}
-details.raw pre {
-  margin: 0.4rem 0 0;
-  font-family: ui-monospace, "SF Mono", Menlo, monospace;
-  font-size: 0.72rem;
-  line-height: 1.45;
-  color: var(--text-muted);
-  background-color: var(--surface-2);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  padding: 0.5rem 0.6rem;
-  white-space: pre-wrap;
-  word-break: break-word;
 }
 .connect {
   padding: 0.4rem 0.9rem;
