@@ -1,4 +1,4 @@
-import { Component, effect, inject, input, signal } from "@angular/core";
+import { Component, effect, inject, input, signal, WritableSignal } from "@angular/core";
 import { FormsModule } from "@angular/forms";
 import { UnlistenFn } from "@tauri-apps/api/event";
 import { Host } from "../models/host.model";
@@ -70,6 +70,25 @@ export class SftpBrowserComponent {
     effect(() => {
       const id = this.host().id;
       void this.initPanes(id);
+    });
+
+    // Auto-dismiss each pane's error message ~10s after it appears. The effect
+    // re-runs on every change: a new error restarts the timer (onCleanup cancels
+    // the old one) and clearing to "" just cancels it.
+    this.autoClear(this.localErr);
+    this.autoClear(this.remoteErr);
+  }
+
+  /** Clear an error signal 10s after it's set to a non-empty message. */
+  private autoClear(sig: WritableSignal<string>): void {
+    effect((onCleanup) => {
+      const msg = sig();
+      if (!msg) return;
+      const timer = setTimeout(() => {
+        // Only clear if this exact message is still showing.
+        if (sig() === msg) sig.set("");
+      }, 10000);
+      onCleanup(() => clearTimeout(timer));
     });
   }
 
