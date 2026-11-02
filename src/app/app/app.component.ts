@@ -211,9 +211,14 @@ export class AppComponent implements OnInit {
     }
   }
 
-  /** Connect a host to start monitoring it, without leaving the dashboard. */
-  connectForMetrics(host: Host): void {
-    void this.openHost(host, undefined, false);
+  /** Connect a host from the dashboard; once it connects, open its terminal.
+   * Stays on the dashboard while connecting (and if it fails, so the card shows
+   * the error), then switches to the Terminals view on success. */
+  async connectForMetrics(host: Host): Promise<void> {
+    await this.openHost(host, undefined, false);
+    if (this.hasLiveSession(host)) {
+      this.focusOrOpenHost(host);
+    }
   }
 
   /** Open this host's terminal: focus its most recent live session if there is

@@ -341,6 +341,7 @@
   display: flex;
   justify-content: flex-end;
   gap: 0.1rem;
+  margin-top: -10px;
 }
 
 /* Host action icons (Files / Edit / Disconnect) stay visible, not hover-only. */
