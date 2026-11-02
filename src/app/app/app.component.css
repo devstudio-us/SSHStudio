@@ -303,6 +303,7 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  margin-left: 13px;
 }
 
 .host-tags {
@@ -586,6 +587,32 @@ button.ghost:hover {
 }
 
 /* Identity-file input paired with a "Browse…" button. */
+/* Segmented toggle (e.g. Password / Private key in the host form). */
+.seg {
+  display: flex;
+  gap: 0.25rem;
+  padding: 0.2rem;
+  background-color: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+.seg button {
+  flex: 1;
+  padding: 0.4rem 0.6rem;
+  border: none;
+  border-radius: calc(var(--radius-sm) - 0.15rem);
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.seg button.on {
+  background-color: var(--surface);
+  color: var(--text);
+  box-shadow: var(--shadow);
+}
+
 .path-row {
   display: flex;
   gap: 0.5rem;

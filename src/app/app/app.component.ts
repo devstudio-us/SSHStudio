@@ -17,6 +17,7 @@ import { NotesManagerComponent } from "../notes-manager/notes-manager.component"
 import { NotePanelComponent } from "../note-panel/note-panel.component";
 import { SftpBrowserComponent } from "../sftp-browser/sftp-browser.component";
 import { SelectComponent, SelectOption } from "../select/select.component";
+import { AutofocusDirective } from "../directives/autofocus.directive";
 import { NotesService } from "../services/notes.service";
 import { SftpService } from "../services/sftp.service";
 import { Host } from "../models/host.model";
@@ -50,6 +51,8 @@ interface HostForm {
   hostname: string;
   port: number;
   user: string;
+  /** How to authenticate: prompt for a password, or use a private key file. */
+  authMethod: "password" | "key";
   identity_file: string;
   tags: string;
   notes: string;
@@ -80,6 +83,7 @@ interface ConfirmState {
     NotePanelComponent,
     SftpBrowserComponent,
     SelectComponent,
+    AutofocusDirective,
   ],
   templateUrl: "./app.component.html",
   styleUrl: "./app.component.css",
@@ -442,12 +446,14 @@ export class AppComponent implements OnInit {
 
   openEditForm(host: Host, event?: Event): void {
     event?.stopPropagation();
+    const identity = host.identity_file ?? "";
     this.form = {
       name: host.name,
       hostname: host.hostname,
       port: host.port,
       user: host.user,
-      identity_file: host.identity_file ?? "",
+      authMethod: identity.length > 0 ? "key" : "password",
+      identity_file: identity,
       tags: host.tags.join(", "),
       notes: host.notes,
     };
@@ -475,8 +481,9 @@ export class AppComponent implements OnInit {
     }
   }
 
-  /** Name, hostname and user must be filled and the port a valid 1–65535;
-   * the identity file stays optional (password auth is still supported). */
+  /** Name, hostname and user must be filled and the port a valid 1–65535. When
+   * the "Private key" method is chosen, an identity file path is also required;
+   * "Password" needs nothing extra (the password is asked for at connect time). */
   hostFormValid(): boolean {
     const f = this.form;
     const port = Number(f.port);
@@ -486,20 +493,24 @@ export class AppComponent implements OnInit {
       f.user.trim().length > 0 &&
       Number.isInteger(port) &&
       port >= 1 &&
-      port <= 65535
+      port <= 65535 &&
+      (f.authMethod !== "key" || f.identity_file.trim().length > 0)
     );
   }
 
   async saveHost(): Promise<void> {
     if (!this.hostFormValid()) return;
     this.error.set("");
+    // Only keep the key path when the key method is chosen; password auth stores
+    // no secret and connects by prompting at connect time.
     const identity = this.form.identity_file.trim();
+    const useKey = this.form.authMethod === "key" && identity.length > 0;
     const fields = {
       name: this.form.name.trim(),
       hostname: this.form.hostname.trim(),
       port: Number(this.form.port) || 22,
       user: this.form.user.trim(),
-      identity_file: identity.length > 0 ? identity : null,
+      identity_file: useKey ? identity : null,
       tags: this.splitTags(this.form.tags),
       notes: this.form.notes.trim(),
     };
@@ -703,6 +714,7 @@ export class AppComponent implements OnInit {
       hostname: "",
       port: 22,
       user: "",
+      authMethod: "password",
       identity_file: "",
       tags: "",
       notes: "",

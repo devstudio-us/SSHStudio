@@ -268,7 +268,7 @@
       <form class="host-form" (submit)="$event.preventDefault(); saveHost()">
         <label>
           <span class="cap">Name<span class="req">*</span></span>
-          <input name="name" [(ngModel)]="form.name" placeholder="my-server" required />
+          <input name="name" [(ngModel)]="form.name" placeholder="my-server" required appAutofocus />
         </label>
         <label>
           <span class="cap">Hostname / IP<span class="req">*</span></span>
@@ -285,12 +285,27 @@
           </label>
         </div>
         <label>
-          <span class="cap">Identity file<span class="hint">(optional)</span></span>
-          <div class="path-row">
-            <input name="identity_file" [(ngModel)]="form.identity_file" placeholder="~/.ssh/id_ed25519" />
-            <button type="button" class="ghost browse" (click)="browseIdentityFile()">Browse…</button>
+          <span class="cap">Authentication</span>
+          <div class="seg" role="group" aria-label="Authentication method">
+            <button type="button" [class.on]="form.authMethod === 'password'" (click)="form.authMethod = 'password'">
+              Password
+            </button>
+            <button type="button" [class.on]="form.authMethod === 'key'" (click)="form.authMethod = 'key'">
+              Private key
+            </button>
           </div>
         </label>
+        @if (form.authMethod === "key") {
+          <label>
+            <span class="cap">Identity file<span class="req">*</span></span>
+            <div class="path-row">
+              <input name="identity_file" [(ngModel)]="form.identity_file" placeholder="~/.ssh/id_ed25519" />
+              <button type="button" class="ghost browse" (click)="browseIdentityFile()">Browse…</button>
+            </div>
+          </label>
+        } @else {
+          <p class="form-hint">You’ll be asked for the password when you connect — it’s never saved.</p>
+        }
         <label>
           <span class="cap">Tags<span class="hint">(comma-separated)</span></span>
           <input name="tags" [(ngModel)]="form.tags" placeholder="prod, web" />
@@ -328,7 +343,7 @@
           [(ngModel)]="secretValue"
           name="secret"
           placeholder="••••••••"
-          autofocus
+          appAutofocus
         />
         <div class="modal-actions">
           <button type="button" class="ghost" (click)="cancelSecret()">Cancel</button>
@@ -347,7 +362,7 @@
       <form class="host-form" (submit)="$event.preventDefault(); saveNote()">
         <label>
           <span class="cap">Name<span class="req">*</span></span>
-          <input name="note-name" [(ngModel)]="noteForm.name" placeholder="Restart web server" required />
+          <input name="note-name" [(ngModel)]="noteForm.name" placeholder="Restart web server" required appAutofocus />
         </label>
         <label>
           <span class="cap">Scope</span>

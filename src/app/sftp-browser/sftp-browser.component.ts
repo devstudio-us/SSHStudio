@@ -5,6 +5,7 @@ import { UnlistenFn } from "@tauri-apps/api/event";
 import { Host } from "../models/host.model";
 import { FileEntry } from "../models/file-entry.model";
 import { SftpService } from "../services/sftp.service";
+import { AutofocusDirective } from "../directives/autofocus.directive";
 
 type Side = "local" | "remote";
 
@@ -41,7 +42,7 @@ interface Ask {
  */
 @Component({
   selector: "app-sftp-browser",
-  imports: [FormsModule],
+  imports: [FormsModule, AutofocusDirective],
   templateUrl: "./sftp-browser.component.html",
   styleUrl: "./sftp-browser.component.css",
 })
