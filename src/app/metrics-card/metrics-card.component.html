@@ -1,7 +1,6 @@
 <div class="card" [class.offline]="monitored() && status() === 'error'">
   <header>
     <span class="name">{{ host().name || host().hostname }}</span>
-    <span class="chip" [class]="chip().cls"><span class="cdot"></span>{{ chip().label }}</span>
     <div class="card-actions">
       <button class="icon" type="button" (click)="openTerminal.emit(host())" title="Open terminal" aria-label="Open terminal">
         <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -44,6 +43,8 @@
     </div>
   }
 
+  <span class="chip" [class]="chip().cls"><span class="cdot"></span>{{ chip().label }}</span>
+
   @if (!monitored()) {
     @if (errorInfo(); as err) {
       @if (err.raw !== err.message) {
@@ -68,7 +69,7 @@
       </div>
     } @else {
       <div class="idle">
-        <span class="idle-text">Not connected — connect to see live metrics.</span>
+        <span class="idle-text">Connect to see live metrics.</span>
         <button class="primary connect" type="button" [disabled]="connecting()" (click)="connect.emit(host())">
           @if (connecting()) {
             <span class="spinner" aria-hidden="true"></span>
