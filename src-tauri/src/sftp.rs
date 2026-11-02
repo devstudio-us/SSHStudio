@@ -412,7 +412,13 @@ pub fn local_list(path: String) -> Result<Vec<FileEntry>, String> {
     let read = std::fs::read_dir(&path).map_err(|e| format!("Could not list {path}: {e}"))?;
     let mut entries = Vec::new();
     for item in read.flatten() {
-        let meta = match item.metadata() {
+        let path = item.path();
+        // `DirEntry::metadata` does not follow reparse points, so Windows
+        // profile junctions (Templates, My Documents, SendTo, …) would show as
+        // 0-byte files and be mistaken for uploadable files. Resolve through the
+        // link so real folders list as folders; fall back to the entry's own
+        // metadata for links we can't follow (some are ACL-protected).
+        let meta = match std::fs::metadata(&path).or_else(|_| item.metadata()) {
             Ok(m) => m,
             Err(_) => continue,
         };
@@ -423,7 +429,7 @@ pub fn local_list(path: String) -> Result<Vec<FileEntry>, String> {
             .map(|d| d.as_secs());
         entries.push(FileEntry {
             name: item.file_name().to_string_lossy().into_owned(),
-            path: item.path().to_string_lossy().into_owned(),
+            path: path.to_string_lossy().into_owned(),
             is_dir: meta.is_dir(),
             size: if meta.is_dir() { 0 } else { meta.len() },
             modified,
