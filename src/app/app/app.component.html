@@ -137,7 +137,7 @@
     <!-- Host workspace: Terminal + Files for the active host, toggled in place
          and kept mounted so both survive view/mode switches. -->
     <section class="view-terminals" [style.display]="view() === 'terminals' ? 'flex' : 'none'">
-      @if (activeHost(); as h) {
+      @if (!showConnecting() && activeHost(); as h) {
         <div class="ws-head">
           <div class="ws-title">
             <span class="ws-name">{{ h.name || h.hostname }}</span>
@@ -158,7 +158,13 @@
 
       <!-- Terminal side -->
       <div class="ws-pane" [style.display]="workspaceMode() === 'terminal' || !activeHost() ? 'flex' : 'none'">
-      @if (sessions().length === 0) {
+      @if (showConnecting()) {
+        <div class="connecting-state">
+          <span class="spinner big" aria-hidden="true"></span>
+          <h2>Connecting to {{ connectingHost()?.name || connectingHost()?.hostname }}…</h2>
+          <p>{{ connectingHost()?.user ? connectingHost()?.user + "@" : "" }}{{ connectingHost()?.hostname }}:{{ connectingHost()?.port }}</p>
+        </div>
+      } @else if (sessions().length === 0) {
         <div class="empty-state">
           <span class="es-icon">
             <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">

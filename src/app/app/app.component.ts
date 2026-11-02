@@ -121,6 +121,17 @@ export class AppComponent implements OnInit {
   readonly activeHost = computed(
     () => this.sessions().find((s) => s.id === this.activeId())?.host ?? null,
   );
+  /** The host currently being connected (for the "Connecting…" state). */
+  readonly connectingHost = computed(() => {
+    const id = this.connectingId();
+    return id ? (this.hosts().find((h) => h.id === id) ?? null) : null;
+  });
+  /** Show the "Connecting…" screen in the terminal view: a connect is in flight
+   * for a host that doesn't have a live terminal yet. */
+  readonly showConnecting = computed(() => {
+    const h = this.connectingHost();
+    return !!h && !this.hasLiveSession(h);
+  });
   /** Hosts with at least one live terminal session — the sidebar shows only
    * these; all hosts (connected or not) live on the Dashboard. */
   readonly connectedHosts = computed(() =>

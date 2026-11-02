@@ -284,9 +284,12 @@ pub(crate) async fn open_authenticated(
         keepalive_interval: Some(std::time::Duration::from_secs(30)),
         ..Default::default()
     });
-    let mut session = client::connect(config, server_id.clone(), handler)
-        .await
-        .map_err(|e| {
+    // Cap the connect so an unreachable host fails in ~20s instead of hanging on
+    // the OS TCP timeout (which can be a couple of minutes).
+    let connect = client::connect(config, server_id.clone(), handler);
+    let mut session = match tokio::time::timeout(std::time::Duration::from_secs(20), connect).await
+    {
+        Ok(res) => res.map_err(|e| {
             // A host-key rejection surfaces here as a handshake error; prefer
             // our explicit reason when we recorded one.
             reject_reason
@@ -294,7 +297,9 @@ pub(crate) async fn open_authenticated(
                 .unwrap()
                 .take()
                 .unwrap_or_else(|| format!("Could not connect to {server_id}: {e}"))
-        })?;
+        })?,
+        Err(_) => return Err(format!("Could not connect to {server_id}: timed out")),
+    };
 
     let authed = match host.identity_file.as_deref().filter(|s| !s.is_empty()) {
         Some(identity) => {
