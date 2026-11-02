@@ -179,15 +179,18 @@ header {
   color: var(--accent);
   border-color: var(--accent);
 }
-/* Address line, with the status chip inline in front of it to save a row. */
+/* Address line, with the status chip inline on the right (under the actions)
+   to save a row. */
 .sub {
   margin-top: -0.2rem;
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 0.5rem;
 }
 .sub .chip {
   align-self: center;
+  flex-shrink: 0;
 }
 .addr {
   min-width: 0;

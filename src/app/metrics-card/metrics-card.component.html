@@ -27,8 +27,8 @@
   </header>
 
   <div class="sub">
-    <span class="chip" [class]="chip().cls"><span class="cdot"></span>{{ chip().label }}</span>
     <span class="addr">{{ host().user ? host().user + "@" : "" }}{{ host().hostname }}:{{ host().port }}</span>
+    <span class="chip" [class]="chip().cls"><span class="cdot"></span>{{ chip().label }}</span>
   </div>
 
   @if (host().tags.length > 0 || host().notes) {
