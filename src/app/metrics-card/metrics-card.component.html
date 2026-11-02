@@ -80,6 +80,9 @@
 
   <!-- Actions at the bottom so the name can take the full top row. -->
   <div class="actbar">
+    <button class="add-note" type="button" (click)="addNote.emit(host().id)" title="Add a command for this host">
+      + command
+    </button>
     <div class="acts">
       <button class="icon" type="button" (click)="openTerminal.emit(host())" title="Open terminal" aria-label="Open terminal">
         <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -100,8 +103,5 @@
         </svg>
       </button>
     </div>
-    <button class="add-note" type="button" (click)="addNote.emit(host().id)" title="Add a command for this host">
-      + command
-    </button>
   </div>
 </div>

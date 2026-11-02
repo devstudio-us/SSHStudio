@@ -156,9 +156,7 @@
   display: flex;
   align-items: center;
   gap: 0.15rem;
-}
-.actbar .add-note {
-  margin-left: auto;
+  margin-left: auto; /* push the icons to the right; + command stays on the left */
 }
 .icon {
   display: inline-flex;
