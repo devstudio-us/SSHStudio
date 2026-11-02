@@ -9,12 +9,12 @@
   border: 1px solid var(--border);
   border-radius: var(--radius);
   box-shadow: var(--shadow);
-  padding: 0.9rem 1.1rem;
+  padding: 1.05rem 1.15rem;
   display: flex;
   flex-direction: column;
-  gap: 0.7rem;
+  gap: 0.95rem;
   overflow: hidden;
-  min-height: 11.5rem; /* floor when every card is short (none connected) */
+  min-height: 12.5rem; /* floor when every card is short (none connected) */
 }
 /* A failed connection: red border is the at-a-glance signal across the grid. */
 .card.err {
@@ -86,8 +86,8 @@ header {
   align-items: center;
   justify-content: center;
   text-align: center;
-  gap: 0.6rem;
-  padding: 0.3rem 0;
+  gap: 0.85rem;
+  padding: 0.4rem 0;
 }
 .state-msg {
   display: flex;
@@ -96,11 +96,12 @@ header {
 }
 .st-title {
   font-size: 0.88rem;
-  color: var(--text);
+  font-weight: 600;
+  color: var(--danger);
 }
 .st-detail {
   font-size: 0.8rem;
-  color: var(--text-muted);
+  color: color-mix(in srgb, var(--danger) 72%, var(--text-muted));
 }
 .idle-text {
   font-size: 0.82rem;
@@ -182,7 +183,7 @@ header {
 /* Address line, with the status chip inline on the right (under the actions)
    to save a row. */
 .sub {
-  margin-top: -0.2rem;
+  margin-top: -0.35rem;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -236,7 +237,7 @@ header {
 .tiles {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 0.5rem;
+  gap: 0.6rem;
 }
 .tiles.dim {
   opacity: 0.4;
@@ -244,10 +245,10 @@ header {
 .tile {
   background-color: var(--surface-2);
   border-radius: var(--radius-sm);
-  padding: 0.5rem 0.55rem;
+  padding: 0.7rem 0.65rem;
   display: flex;
   flex-direction: column;
-  gap: 0.35rem;
+  gap: 0.5rem;
 }
 .tk {
   font-size: 0.6rem;
@@ -299,7 +300,7 @@ footer {
   display: flex;
   gap: 1.5rem;
   border-top: 1px solid var(--border);
-  padding-top: 0.7rem;
+  padding-top: 0.85rem;
 }
 .foot-label {
   font-size: 0.68rem;
