@@ -9,12 +9,12 @@
   border: 1px solid var(--border);
   border-radius: var(--radius);
   box-shadow: var(--shadow);
-  padding: 1rem 1.1rem;
+  padding: 0.9rem 1.1rem;
   display: flex;
   flex-direction: column;
-  gap: 0.8rem;
+  gap: 0.7rem;
   overflow: hidden;
-  min-height: 14rem; /* floor when every card is short (none connected) */
+  min-height: 11.5rem; /* floor when every card is short (none connected) */
 }
 /* A failed connection: red border is the at-a-glance signal across the grid. */
 .card.err {
@@ -88,9 +88,6 @@ header {
   text-align: center;
   gap: 0.6rem;
   padding: 0.3rem 0;
-}
-.state .chip {
-  align-self: center;
 }
 .state-msg {
   display: flex;
@@ -182,11 +179,24 @@ header {
   color: var(--accent);
   border-color: var(--accent);
 }
-.addr-line {
-  margin-top: -0.3rem;
+/* Address line, with the status chip inline in front of it to save a row. */
+.sub {
+  margin-top: -0.2rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.sub .chip {
+  align-self: center;
+}
+.addr {
+  min-width: 0;
   font-size: 0.8rem;
   color: var(--text-muted);
   font-variant-numeric: tabular-nums;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .meta {
   display: flex;
@@ -219,51 +229,67 @@ header {
   font-size: 0.82rem;
   color: var(--text-muted);
 }
-.bars {
-  display: flex;
-  flex-direction: column;
-  gap: 0.55rem;
+/* Metric tiles: CPU / RAM / DISK as a big percentage with a slim bar. */
+.tiles {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.5rem;
 }
-.bars.dim {
+.tiles.dim {
   opacity: 0.4;
 }
-.bar-row {
-  display: flex;
-  align-items: center;
-  gap: 0.6rem;
-}
-.bar-label {
-  width: 38px;
-  font-size: 0.72rem;
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  color: var(--text-muted);
-}
-.track {
-  flex: 1;
-  height: 8px;
-  border-radius: 999px;
+.tile {
   background-color: var(--surface-2);
+  border-radius: var(--radius-sm);
+  padding: 0.5rem 0.55rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+.tk {
+  font-size: 0.6rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+.tv {
+  font-size: 1.15rem;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+  color: var(--accent);
+}
+.tv.caution {
+  color: #eab308;
+}
+.tv.high {
+  color: var(--danger);
+}
+.tbar {
+  height: 4px;
+  border-radius: 999px;
+  background-color: color-mix(in srgb, var(--text-faint) 25%, transparent);
   overflow: hidden;
 }
-.fill {
+.tfill {
+  display: block;
   height: 100%;
   border-radius: 999px;
   background-color: var(--accent);
   transition: width 0.4s ease;
 }
-.fill.caution {
+.tfill.caution {
   background-color: #eab308;
 }
-.fill.high {
+.tfill.high {
   background-color: var(--danger);
 }
-.bar-val {
-  width: 112px;
-  text-align: right;
-  font-size: 0.78rem;
+.ts {
+  font-size: 0.66rem;
+  color: var(--text-muted);
   font-variant-numeric: tabular-nums;
-  color: var(--text);
 }
 footer {
   margin-top: auto; /* anchor to the bottom when the card is stretched taller */

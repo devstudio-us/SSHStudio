@@ -177,6 +177,18 @@ export class MetricsCardComponent implements OnDestroy {
     return `${this.fmtBytes(m.disk_used)} / ${this.fmtBytes(m.disk_total)}`;
   }
 
+  ramPctText(): string {
+    const m = this.metrics();
+    if (!m || m.mem_used == null || m.mem_total == null) return "n/a";
+    return `${Math.round(this.ramPct())}%`;
+  }
+
+  diskPctText(): string {
+    const m = this.metrics();
+    if (!m || m.disk_used == null || m.disk_total == null) return "n/a";
+    return `${Math.round(this.diskPct())}%`;
+  }
+
   loadText(): string {
     const m = this.metrics();
     if (!m || m.load1 == null) return "n/a";

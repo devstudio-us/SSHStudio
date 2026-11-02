@@ -26,7 +26,10 @@
     </div>
   </header>
 
-  <div class="addr-line">{{ host().user ? host().user + "@" : "" }}{{ host().hostname }}:{{ host().port }}</div>
+  <div class="sub">
+    <span class="chip" [class]="chip().cls"><span class="cdot"></span>{{ chip().label }}</span>
+    <span class="addr">{{ host().user ? host().user + "@" : "" }}{{ host().hostname }}:{{ host().port }}</span>
+  </div>
 
   @if (host().tags.length > 0 || host().notes) {
     <div class="meta">
@@ -46,7 +49,6 @@
   @if (!monitored()) {
     <!-- Idle / failed: content centered so every card holds the same height. -->
     <div class="state">
-      <span class="chip" [class]="chip().cls"><span class="cdot"></span>{{ chip().label }}</span>
       @if (errorInfo(); as err) {
         <div class="state-msg" [title]="err.raw">
           <span class="st-title">{{ err.title }}</span>
@@ -65,34 +67,27 @@
       </button>
     </div>
   } @else {
-    <span class="chip" [class]="chip().cls"><span class="cdot"></span>{{ chip().label }}</span>
     @if (status() === "error") {
       <p class="msg">{{ metrics()?.error || "Disconnected" }}</p>
     }
 
-    <div class="bars" [class.dim]="status() !== 'ok'">
-      <div class="bar-row">
-        <span class="bar-label">CPU</span>
-        <div class="track">
-          <div class="fill" [class]="level(cpuPct())" [style.width.%]="cpuPct()"></div>
-        </div>
-        <span class="bar-val">{{ fmtPct(metrics()?.cpu_percent ?? null) }}</span>
+    <div class="tiles" [class.dim]="status() !== 'ok'">
+      <div class="tile">
+        <span class="tk">CPU</span>
+        <span class="tv" [class]="level(cpuPct())">{{ fmtPct(metrics()?.cpu_percent ?? null) }}</span>
+        <div class="tbar"><span class="tfill" [class]="level(cpuPct())" [style.width.%]="cpuPct()"></span></div>
       </div>
-
-      <div class="bar-row">
-        <span class="bar-label">RAM</span>
-        <div class="track">
-          <div class="fill" [class]="level(ramPct())" [style.width.%]="ramPct()"></div>
-        </div>
-        <span class="bar-val">{{ ramText() }}</span>
+      <div class="tile">
+        <span class="tk">RAM</span>
+        <span class="tv" [class]="level(ramPct())">{{ ramPctText() }}</span>
+        <div class="tbar"><span class="tfill" [class]="level(ramPct())" [style.width.%]="ramPct()"></span></div>
+        <span class="ts">{{ ramText() }}</span>
       </div>
-
-      <div class="bar-row">
-        <span class="bar-label">DISK</span>
-        <div class="track">
-          <div class="fill" [class]="level(diskPct())" [style.width.%]="diskPct()"></div>
-        </div>
-        <span class="bar-val">{{ diskText() }}</span>
+      <div class="tile">
+        <span class="tk">DISK</span>
+        <span class="tv" [class]="level(diskPct())">{{ diskPctText() }}</span>
+        <div class="tbar"><span class="tfill" [class]="level(diskPct())" [style.width.%]="diskPct()"></span></div>
+        <span class="ts">{{ diskText() }}</span>
       </div>
     </div>
 
