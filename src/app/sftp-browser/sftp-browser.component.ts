@@ -1,5 +1,6 @@
 import { Component, effect, inject, input, signal, WritableSignal } from "@angular/core";
 import { FormsModule } from "@angular/forms";
+import { open } from "@tauri-apps/plugin-dialog";
 import { UnlistenFn } from "@tauri-apps/api/event";
 import { Host } from "../models/host.model";
 import { FileEntry } from "../models/file-entry.model";
@@ -225,6 +226,24 @@ export class SftpBrowserComponent {
   private hostLabel(): string {
     const h = this.host();
     return h.name || h.hostname;
+  }
+
+  /** The name of the local folder downloads currently land in (left pane). */
+  localFolderName(): string {
+    const p = this.localPath().replace(/[\\/]+$/, "");
+    const i = Math.max(p.lastIndexOf("/"), p.lastIndexOf("\\"));
+    return (i >= 0 ? p.slice(i + 1) : p) || p || "this computer";
+  }
+
+  /** Pick a folder, then download the selected remote files into it. Navigates
+   *  the left pane there first so the chosen folder (and its downloads) show. */
+  async downloadTo(): Promise<void> {
+    if (this.selectedCount("remote") === 0) return;
+    const dir = await open({ directory: true, multiple: false, title: "Download to folder" });
+    if (typeof dir !== "string") return; // cancelled
+    await this.openLocal(dir);
+    if (this.localPath() !== dir) return; // folder couldn't be opened
+    await this.download();
   }
 
   /** Ask before replacing existing items at the destination. Resolves true to

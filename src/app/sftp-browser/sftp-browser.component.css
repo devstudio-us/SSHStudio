@@ -172,8 +172,38 @@
   opacity: 0.4;
   cursor: default;
 }
+.xfer-mid .dest {
+  margin: -0.15rem 0 0;
+  text-align: center;
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.xfer-mid .dest-folder {
+  color: var(--text);
+  font-weight: 600;
+}
+.xfer-alt {
+  padding: 0.35rem 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  font-size: 0.74rem;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+.xfer-alt:hover:not(:disabled) {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+.xfer-alt:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
 .xfer-mid .hint {
-  margin: 0;
+  margin: 0.15rem 0 0;
   text-align: center;
   font-size: 0.72rem;
   color: var(--text-faint);
