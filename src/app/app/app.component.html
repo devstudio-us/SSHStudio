@@ -87,10 +87,7 @@
               @if (hasLiveSession(host)) {
                 <span class="dot" title="Connected"></span>
               }
-              {{ host.name || host.hostname }}
-              @if (liveSessionCount(host) >= 2) {
-                <span class="tab-count" title="{{ liveSessionCount(host) }} terminals open">({{ liveSessionCount(host) }})</span>
-              }
+              <span class="host-nm">{{ host.name || host.hostname }}@if (liveSessionCount(host) >= 2) {<span class="tab-count" title="{{ liveSessionCount(host) }} terminals open"> ({{ liveSessionCount(host) }})</span>}</span>
             </span>
             <span class="host-addr">{{ host.user ? host.user + "@" : "" }}{{ host.hostname }}:{{ host.port }}</span>
             @if (host.tags.length > 0) {

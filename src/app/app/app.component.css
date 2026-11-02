@@ -270,10 +270,16 @@
 
 .host-name {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 0.4rem;
   font-weight: 600;
   font-size: 0.92rem;
+}
+
+/* The name text wraps to as many lines as needed so it is never truncated. */
+.host-nm {
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 /* "(2)" badge when a host has more than one terminal open. */
@@ -286,6 +292,7 @@
 .dot {
   width: 7px;
   height: 7px;
+  margin-top: 0.42em; /* align with the first line of the name */
   border-radius: 50%;
   background-color: #22c55e;
   flex-shrink: 0;
@@ -333,6 +340,13 @@
   display: flex;
   gap: 0.1rem;
   flex-shrink: 0;
+}
+
+/* Host action icons (Files / Edit / Disconnect) stay visible, not hover-only. */
+.host-actions .icon-btn {
+  opacity: 1;
+  width: 26px;
+  height: 26px;
 }
 
 .host-item:hover .icon-btn {

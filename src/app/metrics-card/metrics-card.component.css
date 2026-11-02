@@ -20,11 +20,6 @@
 .card.err {
   border-color: var(--danger);
 }
-header {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
 .chip {
   display: inline-flex;
   align-items: center;
@@ -138,25 +133,40 @@ header {
     transform: rotate(360deg);
   }
 }
+/* Full server name on its own row; wraps to as many lines as needed so it is
+   never truncated. */
 .name {
   font-weight: 600;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  font-size: 0.95rem;
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+  overflow-wrap: anywhere;
 }
-.card-actions {
-  margin-left: auto;
+/* Bottom action bar: terminal / edit / delete on the left, + command on the
+   right, pinned to the bottom so the name owns the top of the card. */
+.actbar {
+  margin-top: auto;
   display: flex;
   align-items: center;
-  gap: 0.3rem;
-  flex-shrink: 0;
+  gap: 0.5rem;
+  border-top: 1px solid var(--border);
+  padding-top: 0.75rem;
+}
+.acts {
+  display: flex;
+  align-items: center;
+  gap: 0.15rem;
+}
+.actbar .add-note {
+  margin-left: auto;
 }
 .icon {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 26px;
-  height: 26px;
+  width: 30px;
+  height: 30px;
+  border-radius: var(--radius-sm);
   background: transparent;
   border: none;
   color: var(--text-faint);
@@ -296,11 +306,9 @@ header {
   font-variant-numeric: tabular-nums;
 }
 footer {
-  margin-top: auto; /* anchor to the bottom when the card is stretched taller */
   display: flex;
   gap: 1.5rem;
-  border-top: 1px solid var(--border);
-  padding-top: 0.85rem;
+  padding-top: 0.15rem;
 }
 .foot-label {
   font-size: 0.68rem;
