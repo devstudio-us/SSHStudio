@@ -1,10 +1,12 @@
 import {
   Component,
+  ElementRef,
   computed,
   input,
   linkedSignal,
   output,
   signal,
+  viewChild,
 } from "@angular/core";
 import { NgTemplateOutlet } from "@angular/common";
 import { Note } from "../models/note.model";
@@ -50,6 +52,36 @@ export class NotePanelComponent {
   readonly hostNotes = computed(() =>
     this.notes().filter((n) => n.host_id === this.host().id),
   );
+
+  /** Both sections open → the divider is draggable to resize their heights. */
+  readonly bothOpen = computed(
+    () => !this.hostCollapsed() && !this.globalCollapsed(),
+  );
+  /** Fraction of the split height given to the top (host) section. */
+  readonly topRatio = signal(0.5);
+  readonly dragging = signal(false);
+  private readonly splitRef = viewChild<ElementRef<HTMLElement>>("splitRef");
+
+  startDrag(event: PointerEvent): void {
+    event.preventDefault();
+    this.dragging.set(true);
+    (event.target as HTMLElement).setPointerCapture(event.pointerId);
+  }
+
+  onDrag(event: PointerEvent): void {
+    if (!this.dragging()) return;
+    const el = this.splitRef()?.nativeElement;
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    if (rect.height === 0) return;
+    const ratio = (event.clientY - rect.top) / rect.height;
+    this.topRatio.set(Math.min(0.85, Math.max(0.15, ratio)));
+  }
+
+  endDrag(event: PointerEvent): void {
+    this.dragging.set(false);
+    (event.target as HTMLElement).releasePointerCapture?.(event.pointerId);
+  }
 
   async copy(note: Note): Promise<void> {
     try {

@@ -67,6 +67,29 @@
 .pane.collapsed .pane-scroll {
   display: none;
 }
+/* Draggable handle between the two sections (shown only when both are open). */
+.divider {
+  flex: 0 0 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: row-resize;
+  background-color: var(--surface);
+  touch-action: none;
+  user-select: none;
+}
+.divider::after {
+  content: "";
+  width: 26px;
+  height: 3px;
+  border-radius: 2px;
+  background-color: var(--border);
+  transition: background-color 0.12s ease;
+}
+.divider:hover::after,
+.divider.dragging::after {
+  background-color: var(--accent);
+}
 .pane-scroll {
   flex: 1;
   min-height: 0;

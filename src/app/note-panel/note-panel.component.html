@@ -16,8 +16,8 @@
       </button>
     </header>
 
-    <div class="split">
-      <section class="pane" [class.collapsed]="hostCollapsed()">
+    <div class="split" #splitRef>
+      <section class="pane" [class.collapsed]="hostCollapsed()" [style.flexGrow]="bothOpen() ? topRatio() : null">
         <div class="sec-head">
           <button
             class="sec-toggle"
@@ -39,7 +39,19 @@
         </div>
       </section>
 
-      <section class="pane" [class.collapsed]="globalCollapsed()">
+      @if (bothOpen()) {
+        <div
+          class="divider"
+          [class.dragging]="dragging()"
+          title="Drag to resize"
+          (pointerdown)="startDrag($event)"
+          (pointermove)="onDrag($event)"
+          (pointerup)="endDrag($event)"
+          (pointercancel)="endDrag($event)"
+        ></div>
+      }
+
+      <section class="pane" [class.collapsed]="globalCollapsed()" [style.flexGrow]="bothOpen() ? (1 - topRatio()) : null">
         <div class="sec-head">
           <button
             class="sec-toggle"
