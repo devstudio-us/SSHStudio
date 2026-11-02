@@ -305,7 +305,9 @@
           </label>
         } @else {
           <label>
-            <span class="cap">Password<span class="hint">{{ editHasPassword() ? "(saved — leave blank to keep)" : "(optional)" }}</span></span>
+            <span class="cap">
+              Password<span class="hint">{{ passwordHint() }}</span>
+            </span>
             <input
               name="password"
               type="password"
@@ -314,6 +316,11 @@
               [placeholder]="editHasPassword() ? '••••••••' : 'Saved to your OS keychain'"
             />
           </label>
+          @if (editHasPassword()) {
+            <button type="button" class="link-btn" (click)="toggleRemovePassword()">
+              {{ removeSavedPassword() ? "Keep the saved password" : "Remove saved password" }}
+            </button>
+          }
           <p class="form-hint">Saved securely in your OS keychain (never in the config file). Leave blank to be asked each time you connect.</p>
         }
         <label>

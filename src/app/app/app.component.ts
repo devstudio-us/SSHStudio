@@ -152,6 +152,8 @@ export class AppComponent implements OnInit {
   /** True while editing a host that already has a password saved (shows a hint
    *  that leaving the field blank keeps it). */
   readonly editHasPassword = signal(false);
+  /** Set when the user chose to remove the host's saved password on save. */
+  readonly removeSavedPassword = signal(false);
   form: HostForm = AppComponent.blankForm();
 
   readonly secretPrompt = signal<SecretPrompt | null>(null);
@@ -450,7 +452,19 @@ export class AppComponent implements OnInit {
     this.form = AppComponent.blankForm();
     this.editingHostId.set(null);
     this.editHasPassword.set(false);
+    this.removeSavedPassword.set(false);
     this.showHostForm.set(true);
+  }
+
+  /** Toggle "remove the saved password on save". */
+  toggleRemovePassword(): void {
+    this.removeSavedPassword.update((v) => !v);
+  }
+
+  /** Hint shown next to the Password label. */
+  passwordHint(): string {
+    if (!this.editHasPassword()) return "(optional)";
+    return this.removeSavedPassword() ? "(will be removed on save)" : "(saved — leave blank to keep)";
   }
 
   openEditForm(host: Host, event?: Event): void {
@@ -469,6 +483,7 @@ export class AppComponent implements OnInit {
     };
     // Reflect whether a password is already saved for this host.
     this.editHasPassword.set(false);
+    this.removeSavedPassword.set(false);
     void this.secrets.hasHostPassword(host.id).then((has) => {
       this.editHasPassword.set(has);
       this.cdr.markForCheck();
@@ -535,13 +550,15 @@ export class AppComponent implements OnInit {
       const hostId = editingId
         ? (await this.hostsService.update({ id: editingId, ...fields }), editingId)
         : (await this.hostsService.add(fields)).id;
-      // Keep the keychain in step with the chosen method: save a typed password,
-      // and drop any stored one when switching to key auth. A blank password on
-      // edit leaves the saved one untouched.
+      // Keep the keychain in step with the chosen method: a typed password is
+      // saved; switching to key auth or choosing "remove" clears any stored one.
+      // A blank password on edit (without "remove") leaves the saved one as is.
       if (useKey) {
         await this.secrets.deleteHostPassword(hostId);
       } else if (password.length > 0) {
         await this.secrets.saveHostPassword(hostId, password);
+      } else if (this.removeSavedPassword()) {
+        await this.secrets.deleteHostPassword(hostId);
       }
       this.showHostForm.set(false);
     } catch (e) {

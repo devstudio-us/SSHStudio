@@ -573,6 +573,22 @@ button.ghost:hover {
   color: var(--text-faint);
 }
 
+/* Inline text button (e.g. "Remove saved password" in the host form). */
+.link-btn {
+  align-self: flex-start;
+  margin-top: -0.3rem;
+  padding: 0;
+  background: none;
+  border: none;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--accent);
+  cursor: pointer;
+}
+.link-btn:hover {
+  text-decoration: underline;
+}
+
 .row {
   display: flex;
   gap: 0.85rem;
