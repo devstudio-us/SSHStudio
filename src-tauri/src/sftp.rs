@@ -262,12 +262,34 @@ pub async fn sftp_delete(
 ) -> Result<(), String> {
     let path = path.as_str();
     with_session(&app, &ssh, &sftp, &host_id, |conn| async move {
-        let res = if is_dir {
-            conn.sftp.remove_dir(path).await
+        if is_dir {
+            // SFTP RMDIR only removes empty folders. Check first so we can give a
+            // clear message instead of a raw protocol failure.
+            let has_contents = conn
+                .sftp
+                .read_dir(path)
+                .await
+                .map_err(|e| format!("Could not delete: {e}"))?
+                .any(|e| {
+                    let n = e.file_name();
+                    n != "." && n != ".."
+                });
+            if has_contents {
+                let name = path.rsplit('/').find(|s| !s.is_empty()).unwrap_or(path);
+                return Err(format!(
+                    "\"{name}\" isn't empty, so it can't be deleted. Delete its contents first."
+                ));
+            }
+            conn.sftp
+                .remove_dir(path)
+                .await
+                .map_err(|e| format!("Could not delete: {e}"))
         } else {
-            conn.sftp.remove_file(path).await
-        };
-        res.map_err(|e| format!("Could not delete: {e}"))
+            conn.sftp
+                .remove_file(path)
+                .await
+                .map_err(|e| format!("Could not delete: {e}"))
+        }
     })
     .await
 }
@@ -295,21 +317,8 @@ pub async fn sftp_download(
             .and_then(|m| m.size)
             .unwrap_or(0);
 
-        let mut remote = conn
-            .sftp
-            .open(remote_path)
-            .await
-            .map_err(|e| format!("Could not open remote file: {e}"))?;
-        let mut local = tokio::fs::File::create(local_path)
-            .await
-            .map_err(|e| format!("Could not create local file: {e}"))?;
-
         let mut prog = ProgressEmitter::new(app, transfer_id, total);
-        stream_copy(&mut prog, &mut remote, &mut local).await?;
-        local
-            .flush()
-            .await
-            .map_err(|e| format!("Could not finish download: {e}"))?;
+        download_file(&conn, &mut prog, remote_path, Path::new(local_path)).await?;
         prog.finish();
         Ok(())
     })
@@ -331,22 +340,13 @@ pub async fn sftp_upload(
     let (local_path, remote_path, transfer_id) =
         (local_path.as_str(), remote_path.as_str(), transfer_id.as_str());
     with_session(app, &ssh, &sftp, &host_id, |conn| async move {
-        let mut local = tokio::fs::File::open(local_path)
+        let total = tokio::fs::metadata(local_path)
             .await
-            .map_err(|e| format!("Could not open local file: {e}"))?;
-        let total = local.metadata().await.map(|m| m.len()).unwrap_or(0);
-        let mut remote = conn
-            .sftp
-            .create(remote_path)
-            .await
-            .map_err(|e| format!("Could not create remote file: {e}"))?;
+            .map(|m| m.len())
+            .unwrap_or(0);
 
         let mut prog = ProgressEmitter::new(app, transfer_id, total);
-        stream_copy(&mut prog, &mut local, &mut remote).await?;
-        remote
-            .shutdown()
-            .await
-            .map_err(|e| format!("Could not finish upload: {e}"))?;
+        upload_file(&conn, &mut prog, Path::new(local_path), remote_path).await?;
         prog.finish();
         Ok(())
     })
@@ -385,19 +385,7 @@ pub async fn sftp_upload_dir(
 
         let mut prog = ProgressEmitter::new(app, transfer_id, total);
         for (src, dest, _) in &files {
-            let mut local = tokio::fs::File::open(src)
-                .await
-                .map_err(|e| format!("Could not open {}: {e}", src.display()))?;
-            let mut remote = conn
-                .sftp
-                .create(dest.as_str())
-                .await
-                .map_err(|e| format!("Could not create remote file: {e}"))?;
-            stream_copy(&mut prog, &mut local, &mut remote).await?;
-            remote
-                .shutdown()
-                .await
-                .map_err(|e| format!("Could not finish upload: {e}"))?;
+            upload_file(&conn, &mut prog, src, dest.as_str()).await?;
         }
         prog.finish();
         Ok(())
@@ -434,19 +422,7 @@ pub async fn sftp_download_dir(
 
         let mut prog = ProgressEmitter::new(app, transfer_id, total);
         for (src, dest, _) in &files {
-            let mut remote = conn
-                .sftp
-                .open(src.as_str())
-                .await
-                .map_err(|e| format!("Could not open remote file: {e}"))?;
-            let mut local = tokio::fs::File::create(dest)
-                .await
-                .map_err(|e| format!("Could not create local file: {e}"))?;
-            stream_copy(&mut prog, &mut remote, &mut local).await?;
-            local
-                .flush()
-                .await
-                .map_err(|e| format!("Could not finish download: {e}"))?;
+            download_file(&conn, &mut prog, src.as_str(), dest).await?;
         }
         prog.finish();
         Ok(())
@@ -594,6 +570,75 @@ where
         prog.add(n as u64);
     }
     Ok(())
+}
+
+/// Download one remote file to `local_path`, counting its bytes into `prog`. If
+/// the transfer fails partway, the half-written local file is removed so no
+/// truncated file is left behind.
+async fn download_file(
+    conn: &SftpConn,
+    prog: &mut ProgressEmitter<'_>,
+    remote_path: &str,
+    local_path: &Path,
+) -> Result<(), String> {
+    let mut remote = conn
+        .sftp
+        .open(remote_path)
+        .await
+        .map_err(|e| format!("Could not open remote file: {e}"))?;
+    let mut local = tokio::fs::File::create(local_path)
+        .await
+        .map_err(|e| format!("Could not create local file: {e}"))?;
+
+    let res = async {
+        stream_copy(prog, &mut remote, &mut local).await?;
+        local
+            .flush()
+            .await
+            .map_err(|e| format!("Could not finish download: {e}"))
+    }
+    .await;
+
+    if res.is_err() {
+        // Close the handle first so Windows will let us remove the file.
+        drop(local);
+        let _ = tokio::fs::remove_file(local_path).await;
+    }
+    res
+}
+
+/// Upload one local file to `remote_path`, counting its bytes into `prog`. If
+/// the transfer fails partway, the partial remote file is removed (best effort —
+/// it can't be if the connection itself died).
+async fn upload_file(
+    conn: &SftpConn,
+    prog: &mut ProgressEmitter<'_>,
+    local_path: &Path,
+    remote_path: &str,
+) -> Result<(), String> {
+    let mut local = tokio::fs::File::open(local_path)
+        .await
+        .map_err(|e| format!("Could not open {}: {e}", local_path.display()))?;
+    let mut remote = conn
+        .sftp
+        .create(remote_path)
+        .await
+        .map_err(|e| format!("Could not create remote file: {e}"))?;
+
+    let res = async {
+        stream_copy(prog, &mut local, &mut remote).await?;
+        remote
+            .shutdown()
+            .await
+            .map_err(|e| format!("Could not finish upload: {e}"))
+    }
+    .await;
+
+    if res.is_err() {
+        drop(remote);
+        let _ = conn.sftp.remove_file(remote_path).await;
+    }
+    res
 }
 
 // ---- Local filesystem commands (for the left pane) ----

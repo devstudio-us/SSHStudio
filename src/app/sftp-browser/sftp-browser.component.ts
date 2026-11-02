@@ -331,14 +331,18 @@ export class SftpBrowserComponent {
       targets.length === 1 ? `"${targets[0].name}"` : `${targets.length} items`;
     this.openAsk(`Delete ${label}?`, "", true, "Delete", () => {
       void (async () => {
+        let err = "";
         for (const t of targets) {
           try {
             await this.sftp.remove(this.host().id, t.path, t.is_dir);
           } catch (e) {
-            this.remoteErr.set(String(e));
+            err = String(e);
           }
         }
+        // Refresh first (it clears the error), then surface any failure — e.g.
+        // "X isn't empty, so it can't be deleted" — so the message persists.
         await this.openRemote(this.remotePath());
+        if (err) this.remoteErr.set(err);
       })();
     });
   }
