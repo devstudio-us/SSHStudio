@@ -90,15 +90,15 @@
                 <div class="main">
                   <div class="nm-line">
                     <span class="nm">{{ note.name || note.command || note.text || "(untitled)" }}</span>
+                    @if (note.command || note.text) {
+                      <svg class="exp" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6" /></svg>
+                    }
                     @if (note.tags.length > 0) {
                       <div class="tags">
                         @for (tag of note.tags; track tag) {
                           <span class="tag">{{ tag }}</span>
                         }
                       </div>
-                    }
-                    @if (note.command || note.text) {
-                      <svg class="exp" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6" /></svg>
                     }
                   </div>
                   @if (note.command) {
