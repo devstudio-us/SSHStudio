@@ -78,7 +78,7 @@ Run from the repo root unless noted. Cargo commands run from `src-tauri/`.
 | `npm run tauri dev` | Run the full app in development (the usual command). |
 | `npm run tauri build` | Build a production desktop installer for the current OS. |
 | `npm start` / `ng serve` | Angular frontend only, in a browser. **`invoke` calls fail here** — no Rust backend, so SSH/SFTP won't work. UI-only work. |
-| `ng build` | Build the Angular frontend (output: `dist/sshmanger/browser`). |
+| `ng build` | Build the Angular frontend (output: `dist/sshstudio/browser`). |
 | `cargo build` / `cargo clippy` | From `src-tauri/`; run after any Rust change. |
 
 ## Project layout

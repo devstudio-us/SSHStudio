@@ -4189,7 +4189,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "sshmanger"
+name = "sshstudio"
 version = "0.2.0"
 dependencies = [
  "russh",
