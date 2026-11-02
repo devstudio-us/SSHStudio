@@ -91,9 +91,9 @@ src-tauri/      Rust backend (Tauri commands: SSH, SFTP, metrics, hosts store)
 
 The frontend is one Angular SPA talking to the Rust backend over Tauri's IPC.
 The Rust layer stays thin — only networking, filesystem, PTY, and keychain —
-with product logic in Angular. For a deeper tour of the architecture (the IPC
-contract, capabilities, and the config-name chain), see
-[`CLAUDE.md`](CLAUDE.md).
+with product logic in Angular. A Tauri command is a Rust function annotated
+`#[tauri::command]` and registered in [`src-tauri/src/lib.rs`](src-tauri/src/lib.rs);
+the frontend calls it with `invoke("name", { args })`.
 
 ## Where your data lives
 
