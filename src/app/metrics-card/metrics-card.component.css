@@ -97,11 +97,11 @@ header {
 .st-title {
   font-size: 0.88rem;
   font-weight: 600;
-  color: var(--danger);
+  color: var(--text);
 }
 .st-detail {
   font-size: 0.8rem;
-  color: color-mix(in srgb, var(--danger) 72%, var(--text-muted));
+  color: var(--danger);
 }
 .idle-text {
   font-size: 0.82rem;
