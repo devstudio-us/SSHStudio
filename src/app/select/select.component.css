@@ -47,7 +47,7 @@
   top: calc(100% + 4px);
   left: 0;
   min-width: 100%;
-  max-width: min(90vw, 320px);
+  max-width: min(92vw, 420px);
   max-height: 260px;
   overflow-y: auto;
   padding: 4px;
