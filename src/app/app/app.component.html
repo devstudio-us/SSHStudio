@@ -253,6 +253,7 @@
       [notes]="notes()"
       [hosts]="hosts()"
       (addNew)="openNoteForm()"
+      (addTo)="openNoteForm($event)"
       (edit)="openNoteEdit($event)"
       (remove)="deleteNote($event)"
       (run)="runNote($event)"
