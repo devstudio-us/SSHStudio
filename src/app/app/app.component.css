@@ -241,9 +241,8 @@
 
 .host-item {
   display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 0.5rem;
+  flex-direction: column;
+  gap: 0.4rem;
   padding: 0.55rem 0.6rem;
   border-radius: var(--radius-sm);
   cursor: pointer;
@@ -336,10 +335,12 @@
   transition: opacity 0.12s ease, color 0.12s ease, background-color 0.12s ease;
 }
 
+/* Actions sit on their own row at the bottom of the item, aligned right, so the
+   name above gets the full width. */
 .host-actions {
   display: flex;
+  justify-content: flex-end;
   gap: 0.1rem;
-  flex-shrink: 0;
 }
 
 /* Host action icons (Files / Edit / Disconnect) stay visible, not hover-only. */
@@ -349,8 +350,8 @@
   height: 26px;
 }
 
-.host-item:hover .icon-btn {
-  opacity: 1;
+.host-item > .spinner {
+  align-self: flex-end;
 }
 
 .icon-btn:hover {
