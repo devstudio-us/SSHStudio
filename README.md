@@ -62,6 +62,10 @@ Grab the file for your OS from the **[Releases page](https://github.com/devstudi
 ```bash
 sudo apt install ./SSHStudio_*_amd64.deb
 ```
+**Fedora / RHEL (`.rpm`):**
+```bash
+sudo dnf install ./SSHStudio-*.x86_64.rpm
+```
 **AppImage (any distro):**
 ```bash
 chmod +x SSHStudio_*_amd64.AppImage
@@ -123,8 +127,9 @@ Then the native build tools for **your** OS:
 - **🍎 macOS** — `xcode-select --install`
 - **🐧 Linux (Debian/Ubuntu)** —
   ```bash
-  sudo apt install -y libwebkit2gtk-4.1-dev build-essential curl wget file \
-    libxdo-dev libssl-dev libayatana-appindicator3-dev librsvg2-dev
+  sudo apt install -y libwebkit2gtk-4.1-dev librsvg2-dev patchelf \
+    build-essential curl wget file libxdo-dev libssl-dev \
+    libayatana-appindicator3-dev
   ```
 
 ### 2. Clone, install and run
