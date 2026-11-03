@@ -62,8 +62,6 @@ export class SftpBrowserComponent {
   readonly localBusy = signal(false);
   readonly remoteBusy = signal(false);
   readonly transfers = signal<Transfer[]>([]);
-  /** Which pane an in-flight drag started from (to allow a cross-pane drop). */
-  readonly dragSide = signal<Side | null>(null);
   readonly ask = signal<Ask | null>(null);
   askValue = "";
 
@@ -310,27 +308,6 @@ export class SftpBrowserComponent {
 
   pctLabel(t: Transfer): string {
     return `${Math.round(this.pct(t))}%`;
-  }
-
-  // --- drag and drop between panes ---
-
-  onDragStart(side: Side, entry: FileEntry): void {
-    const sel = side === "local" ? this.localSel : this.remoteSel;
-    if (!sel().has(entry.path)) sel.set(new Set([entry.path]));
-    this.dragSide.set(side);
-  }
-
-  onDragOver(side: Side, event: DragEvent): void {
-    // Only allow a drop on the opposite pane.
-    if (this.dragSide() && this.dragSide() !== side) event.preventDefault();
-  }
-
-  async onDrop(side: Side, event: DragEvent): Promise<void> {
-    event.preventDefault();
-    const from = this.dragSide();
-    this.dragSide.set(null);
-    if (from === "remote" && side === "local") await this.download();
-    else if (from === "local" && side === "remote") await this.upload();
   }
 
   // --- remote management (new folder / rename / delete) ---
