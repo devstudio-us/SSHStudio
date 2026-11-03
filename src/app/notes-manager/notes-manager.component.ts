@@ -67,6 +67,7 @@ export class NotesManagerComponent {
   // --- drag-to-reorder state (Custom order only) ---
   private dragKey: string | null = null;
   private dragFrom: number | null = null;
+  readonly dragging = signal(false);
   readonly dragOverKey = signal<string | null>(null);
   readonly dragOverIndex = signal<number | null>(null);
 
@@ -156,33 +157,64 @@ export class NotesManagerComponent {
     this.sortByKey.update((m) => ({ ...m, [key]: (mode as SortMode) ?? "custom" }));
   }
 
-  // --- drag-to-reorder (Custom order, no active search) ---
+  // --- drag-to-reorder (pointer-based; works in the webview, unlike HTML5 DnD).
+  // Enabled only in Custom order with no active search. ---
   canReorder(key: string): boolean {
     return this.sortMode(key) === "custom" && this.query().trim() === "";
   }
   isDragOver(key: string, index: number): boolean {
-    return this.dragOverKey() === key && this.dragOverIndex() === index;
+    return (
+      this.dragging() &&
+      this.dragOverKey() === key &&
+      this.dragOverIndex() === index
+    );
   }
-  onDragStart(key: string, index: number, event: DragEvent): void {
+
+  startDrag(key: string, index: number, event: PointerEvent): void {
+    event.preventDefault();
+    event.stopPropagation();
     this.dragKey = key;
     this.dragFrom = index;
-    if (event.dataTransfer) event.dataTransfer.effectAllowed = "move";
-  }
-  onDragOver(key: string, index: number, event: DragEvent): void {
-    if (this.dragKey !== key) return;
-    event.preventDefault();
+    this.dragging.set(true);
     this.dragOverKey.set(key);
     this.dragOverIndex.set(index);
+    (event.currentTarget as HTMLElement).setPointerCapture?.(event.pointerId);
   }
-  onDrop(sec: Section, index: number, event: DragEvent): void {
-    event.preventDefault();
+
+  onDragMove(event: PointerEvent): void {
+    if (!this.dragging()) return;
+    const el = document.elementFromPoint(
+      event.clientX,
+      event.clientY,
+    ) as HTMLElement | null;
+    const row = el?.closest<HTMLElement>(".row");
+    if (!row) return;
+    const key = row.dataset["key"];
+    const idx = row.dataset["index"];
+    if (key !== this.dragKey || idx === undefined) return;
+    this.dragOverIndex.set(Number(idx));
+  }
+
+  endDrag(event: PointerEvent): void {
+    if (!this.dragging()) return;
+    (event.currentTarget as HTMLElement).releasePointerCapture?.(
+      event.pointerId,
+    );
     const from = this.dragFrom;
+    const to = this.dragOverIndex();
     const key = this.dragKey;
-    this.resetDrag();
-    if (from === null || key !== sec.key || from === index) return;
+    this.dragging.set(false);
+    this.dragKey = null;
+    this.dragFrom = null;
+    this.dragOverKey.set(null);
+    this.dragOverIndex.set(null);
+    if (from === null || to === null || key === null || from === to) return;
+
+    const sec = this.visibleSections().find((s) => s.key === key);
+    if (!sec) return;
     const ids = sec.notes.map((n) => n.id);
     const [moved] = ids.splice(from, 1);
-    ids.splice(index, 0, moved);
+    ids.splice(to, 0, moved);
     // Rebuild the full id order: swap this scope's notes (in list order) for the
     // new order, leaving every other note exactly where it is.
     const inScope = (n: Note): boolean =>
@@ -190,15 +222,6 @@ export class NotesManagerComponent {
     let i = 0;
     const full = this.notes().map((n) => (inScope(n) ? ids[i++] : n.id));
     this.reorder.emit(full);
-  }
-  onDragEnd(): void {
-    this.resetDrag();
-  }
-  private resetDrag(): void {
-    this.dragKey = null;
-    this.dragFrom = null;
-    this.dragOverKey.set(null);
-    this.dragOverIndex.set(null);
   }
 
   // --- section collapse ---
