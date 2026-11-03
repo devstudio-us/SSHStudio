@@ -75,8 +75,27 @@
 
         @if (!isSectionCollapsed(sec.key)) {
           <div class="rows">
-            @for (note of sec.notes; track note.id) {
-              <div class="row" [class.open]="isExpanded(note.id)" (click)="toggleExpand(note.id)">
+            @for (note of sec.notes; track note.id; let i = $index) {
+              <div
+                class="row"
+                [class.open]="isExpanded(note.id)"
+                [class.drag-over]="isDragOver(sec.key, i)"
+                (click)="toggleExpand(note.id)"
+                (dragover)="onDragOver(sec.key, i, $event)"
+                (drop)="onDrop(sec, i, $event)"
+              >
+                @if (canReorder(sec.key)) {
+                  <span
+                    class="grip"
+                    draggable="true"
+                    title="Drag to reorder"
+                    (dragstart)="onDragStart(sec.key, i, $event)"
+                    (dragend)="onDragEnd()"
+                    (click)="$event.stopPropagation()"
+                  >
+                    <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><circle cx="9" cy="6" r="1.4" /><circle cx="15" cy="6" r="1.4" /><circle cx="9" cy="12" r="1.4" /><circle cx="15" cy="12" r="1.4" /><circle cx="9" cy="18" r="1.4" /><circle cx="15" cy="18" r="1.4" /></svg>
+                  </span>
+                }
                 @if (note.command) {
                   <button class="run" type="button" (click)="run.emit(note); $event.stopPropagation()" title="Run in terminal">
                     <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><polygon points="6 4 20 12 6 20 6 4" /></svg>

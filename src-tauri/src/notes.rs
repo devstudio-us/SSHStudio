@@ -4,6 +4,7 @@
 //!
 //! Same thin shape as the hosts store: serialization + atomic file I/O only.
 
+use std::collections::HashMap;
 use std::fs;
 use std::fs::File;
 use std::io::Write;
@@ -112,6 +113,23 @@ pub fn update_note(app: AppHandle, note: Note) -> Result<Note, String> {
     notes[idx] = note.clone();
     save(&app, &notes)?;
     Ok(note)
+}
+
+/// Reorder the stored notes to match `ordered_ids` (the full list of note ids
+/// in the desired order). Drives the Commands page's manual "Custom" order; the
+/// relative order of notes within a scope is their order in this list. Ids not
+/// present keep their relative order at the end.
+#[tauri::command]
+pub fn reorder_notes(app: AppHandle, ordered_ids: Vec<String>) -> Result<(), String> {
+    let mut notes = load(&app)?;
+    let rank: HashMap<&str, usize> = ordered_ids
+        .iter()
+        .enumerate()
+        .map(|(i, id)| (id.as_str(), i))
+        .collect();
+    // sort_by_key is stable, so unranked notes (usize::MAX) keep their order.
+    notes.sort_by_key(|n| rank.get(n.id.as_str()).copied().unwrap_or(usize::MAX));
+    save(&app, &notes)
 }
 
 #[tauri::command]

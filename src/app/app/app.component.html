@@ -260,6 +260,7 @@
       [hosts]="hosts()"
       (addNew)="openNoteForm()"
       (addTo)="openNoteForm($event)"
+      (reorder)="reorderNotes($event)"
       (edit)="openNoteEdit($event)"
       (remove)="deleteNote($event)"
       (run)="runNote($event)"

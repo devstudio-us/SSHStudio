@@ -623,6 +623,16 @@ export class AppComponent implements OnInit {
     this.showNoteForm.set(false);
   }
 
+  /** Persist a manual reorder of commands from the Commands page. */
+  async reorderNotes(orderedIds: string[]): Promise<void> {
+    this.error.set("");
+    try {
+      await this.notesService.reorder(orderedIds);
+    } catch (e) {
+      this.error.set(String(e));
+    }
+  }
+
   /** A note needs a name and at least one of command or text. */
   noteFormValid(): boolean {
     const f = this.noteForm;

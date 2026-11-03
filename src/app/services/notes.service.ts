@@ -25,4 +25,10 @@ export class NotesService {
     await invoke("delete_note", { id });
     await this.refresh();
   }
+
+  /** Persist a new manual order (the full list of note ids in desired order). */
+  async reorder(orderedIds: string[]): Promise<void> {
+    await invoke("reorder_notes", { orderedIds });
+    await this.refresh();
+  }
 }

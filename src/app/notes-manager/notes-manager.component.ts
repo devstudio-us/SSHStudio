@@ -3,7 +3,7 @@ import { SelectComponent, SelectOption } from "../select/select.component";
 import { Note } from "../models/note.model";
 import { Host } from "../models/host.model";
 
-type SortMode = "az" | "za" | "new" | "old";
+type SortMode = "custom" | "az" | "za";
 
 /** One scope's group of commands: Global, or a single host. */
 interface Section {
@@ -44,6 +44,8 @@ export class NotesManagerComponent {
   readonly addNew = output<void>();
   /** Add a command scoped to a section: a host id, or null for Global. */
   readonly addTo = output<string | null>();
+  /** A new manual order: the full list of note ids in the desired order. */
+  readonly reorder = output<string[]>();
 
   readonly query = signal("");
   readonly scopeFilter = signal("all");
@@ -57,11 +59,16 @@ export class NotesManagerComponent {
   private readonly sortByKey = signal<Record<string, SortMode>>({});
 
   readonly sortOptions: SelectOption[] = [
+    { value: "custom", label: "Custom order" },
     { value: "az", label: "Name A–Z" },
     { value: "za", label: "Name Z–A" },
-    { value: "new", label: "Newest" },
-    { value: "old", label: "Oldest" },
   ];
+
+  // --- drag-to-reorder state (Custom order only) ---
+  private dragKey: string | null = null;
+  private dragFrom: number | null = null;
+  readonly dragOverKey = signal<string | null>(null);
+  readonly dragOverIndex = signal<number | null>(null);
 
   readonly scopeOptions = computed<SelectOption[]>(() => [
     { value: "all", label: "All scopes" },
@@ -132,25 +139,66 @@ export class NotesManagerComponent {
     const mode = this.sortMode(key);
     const label = (n: Note): string =>
       (n.name || n.command || n.text || "").toLowerCase();
-    const arr = [...notes];
-    switch (mode) {
-      case "za":
-        return arr.sort((a, b) => label(b).localeCompare(label(a)));
-      case "new":
-        return arr.reverse(); // notes() is oldest-first (insertion order)
-      case "old":
-        return arr;
-      default:
-        return arr.sort((a, b) => label(a).localeCompare(label(b)));
+    if (mode === "az") {
+      return [...notes].sort((a, b) => label(a).localeCompare(label(b)));
     }
+    if (mode === "za") {
+      return [...notes].sort((a, b) => label(b).localeCompare(label(a)));
+    }
+    return notes; // custom: keep the stored (manual) order
   }
 
   // --- per-section sort ---
   sortMode(key: string): SortMode {
-    return this.sortByKey()[key] ?? "az";
+    return this.sortByKey()[key] ?? "custom";
   }
   setSort(key: string, mode: string | null): void {
-    this.sortByKey.update((m) => ({ ...m, [key]: (mode as SortMode) ?? "az" }));
+    this.sortByKey.update((m) => ({ ...m, [key]: (mode as SortMode) ?? "custom" }));
+  }
+
+  // --- drag-to-reorder (Custom order, no active search) ---
+  canReorder(key: string): boolean {
+    return this.sortMode(key) === "custom" && this.query().trim() === "";
+  }
+  isDragOver(key: string, index: number): boolean {
+    return this.dragOverKey() === key && this.dragOverIndex() === index;
+  }
+  onDragStart(key: string, index: number, event: DragEvent): void {
+    this.dragKey = key;
+    this.dragFrom = index;
+    if (event.dataTransfer) event.dataTransfer.effectAllowed = "move";
+  }
+  onDragOver(key: string, index: number, event: DragEvent): void {
+    if (this.dragKey !== key) return;
+    event.preventDefault();
+    this.dragOverKey.set(key);
+    this.dragOverIndex.set(index);
+  }
+  onDrop(sec: Section, index: number, event: DragEvent): void {
+    event.preventDefault();
+    const from = this.dragFrom;
+    const key = this.dragKey;
+    this.resetDrag();
+    if (from === null || key !== sec.key || from === index) return;
+    const ids = sec.notes.map((n) => n.id);
+    const [moved] = ids.splice(from, 1);
+    ids.splice(index, 0, moved);
+    // Rebuild the full id order: swap this scope's notes (in list order) for the
+    // new order, leaving every other note exactly where it is.
+    const inScope = (n: Note): boolean =>
+      sec.isGlobal ? !n.host_id : n.host_id === sec.scopeId;
+    let i = 0;
+    const full = this.notes().map((n) => (inScope(n) ? ids[i++] : n.id));
+    this.reorder.emit(full);
+  }
+  onDragEnd(): void {
+    this.resetDrag();
+  }
+  private resetDrag(): void {
+    this.dragKey = null;
+    this.dragFrom = null;
+    this.dragOverKey.set(null);
+    this.dragOverIndex.set(null);
   }
 
   // --- section collapse ---

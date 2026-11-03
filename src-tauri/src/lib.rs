@@ -31,6 +31,7 @@ pub fn run() {
             notes::list_notes,
             notes::add_note,
             notes::update_note,
+            notes::reorder_notes,
             notes::delete_note,
             sftp::sftp_home,
             sftp::sftp_list,
