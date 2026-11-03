@@ -13,7 +13,7 @@ Hosts, live server dashboards, real terminals and saved commands — in one clea
 ![Platforms](https://img.shields.io/badge/platforms-Windows%20%7C%20macOS%20%7C%20Linux-informational)
 [![Stars](https://img.shields.io/github/stars/devstudio-us/ssh-studio?style=flat)](https://github.com/devstudio-us/ssh-studio/stargazers)
 
-[**Download**](#download) · [Features](#features) · [Build from source](#build-from-source) · [How it works](#how-it-works) · [Contributing](CONTRIBUTING.md)
+[**Download**](#download--install) · [Features](#features) · [Build from source](#build-from-source) · [How it works](#how-it-works) · [Contributing](CONTRIBUTING.md)
 
 </div>
 
@@ -25,20 +25,49 @@ Hosts, live server dashboards, real terminals and saved commands — in one clea
 
 ---
 
-## Download
+## Download & install
 
-Grab the latest installer for your OS from the **[Releases page](https://github.com/devstudio-us/ssh-studio/releases/latest)**:
+Grab the file for your OS from the **[Releases page](https://github.com/devstudio-us/ssh-studio/releases/latest)**, then follow the steps for that OS. No sign-up, nothing to configure first.
 
-| Platform | File |
-|----------|------|
-| **Windows** | `.exe` (installer) or `.msi` |
-| **macOS** (Apple Silicon) | `SSHStudio_x.y.z_aarch64.dmg` |
-| **macOS** (Intel) | `SSHStudio_x.y.z_x64.dmg` |
-| **Linux** | `.AppImage` or `.deb` |
+| Platform | File to download |
+|----------|------------------|
+| **Windows** | `SSHStudio_x.y.z_x64-setup.exe` (or `.msi`) |
+| **macOS** — Apple Silicon (M1/M2/M3) | `SSHStudio_x.y.z_aarch64.dmg` |
+| **macOS** — Intel | `SSHStudio_x.y.z_x64.dmg` |
+| **Linux** | `SSHStudio_x.y.z_amd64.AppImage` or `.deb` |
 
-Download, run it, and you're in — no sign-up, nothing to configure first.
+<details open>
+<summary><b>🪟 Windows</b></summary>
 
-> **macOS note:** the app isn't code-signed yet, so on first launch macOS may say it "can't be opened." Right-click the app → **Open** → **Open**, or run `xattr -cr /Applications/SSHStudio.app` once. (A signed, notarized build is planned.)
+1. Download and run the **`.exe`** installer.
+2. The app isn't code-signed yet, so Windows SmartScreen may warn you — click **More info → Run anyway**.
+</details>
+
+<details>
+<summary><b>🍎 macOS</b></summary>
+
+1. Download the **`.dmg`** — **aarch64** for Apple Silicon (M1/M2/M3), **x64** for Intel.
+2. Open it and drag **SSHStudio** into **Applications**.
+3. On first launch macOS may say it "can't be opened" (it isn't notarized yet). Either **right-click the app → Open → Open**, or run this once in Terminal:
+   ```bash
+   xattr -cr /Applications/SSHStudio.app
+   ```
+   *(A signed, notarized build is planned.)*
+</details>
+
+<details>
+<summary><b>🐧 Linux</b></summary>
+
+**Debian / Ubuntu (`.deb`):**
+```bash
+sudo apt install ./SSHStudio_*_amd64.deb
+```
+**AppImage (any distro):**
+```bash
+chmod +x SSHStudio_*_amd64.AppImage
+./SSHStudio_*_amd64.AppImage
+```
+</details>
 
 ---
 
@@ -79,33 +108,38 @@ Save reusable commands and snippets, **grouped by scope** — a Global section p
 
 ## Build from source
 
-Want to run the latest, or hack on it?
+### 1. Install the prerequisites
 
-**Prerequisites**
+This is the **only** OS-specific part. On every platform you need:
 
 | Tool | Version |
 |------|---------|
 | [Node.js](https://nodejs.org) | **≥ 22.22.3** (or 24.x) |
 | [Rust](https://rustup.rs) | latest stable |
 
-Plus your platform's native build deps:
+Then the native build tools for **your** OS:
 
-- **Windows** — [Microsoft C++ Build Tools](https://visualstudio.microsoft.com/visual-cpp-build-tools/) (WebView2 ships with Windows).
-- **macOS** — `xcode-select --install`
-- **Linux (Debian/Ubuntu)** — `sudo apt install -y libwebkit2gtk-4.1-dev build-essential curl wget file libxdo-dev libssl-dev libayatana-appindicator3-dev librsvg2-dev`
+- **🪟 Windows** — [Microsoft C++ Build Tools](https://visualstudio.microsoft.com/visual-cpp-build-tools/) (WebView2 already ships with Windows 10/11).
+- **🍎 macOS** — `xcode-select --install`
+- **🐧 Linux (Debian/Ubuntu)** —
+  ```bash
+  sudo apt install -y libwebkit2gtk-4.1-dev build-essential curl wget file \
+    libxdo-dev libssl-dev libayatana-appindicator3-dev librsvg2-dev
+  ```
 
-**Run it**
+### 2. Clone, install and run
+
+These commands are **the same on Windows, macOS and Linux**:
 
 ```bash
 git clone https://github.com/devstudio-us/ssh-studio.git
 cd ssh-studio
 npm install
-npm run tauri dev      # launches the app in development
+npm run tauri dev       # run the app in development
+npm run tauri build     # build an installer for your current OS
 ```
 
-Build a production installer for your OS with `npm run tauri build`.
-
-> The first run is slow — Cargo compiles the Rust crates from scratch (a few minutes). After that it's fast.
+> The first `npm run tauri dev` is slow — Cargo compiles the Rust crates from scratch (a few minutes). After that it's fast.
 
 ---
 
@@ -121,7 +155,7 @@ SSHStudio is a single **Angular** app talking to a thin **Rust** backend over **
 
 ## Troubleshooting
 
-- **macOS "can't be opened" / "damaged":** see the [macOS note](#download) above — the build isn't signed yet; right-click → Open, or `xattr -cr`.
+- **macOS "can't be opened" / "damaged":** see the [macOS note](#download--install) above — the build isn't signed yet; right-click → Open, or `xattr -cr`.
 - **A host hangs on connect:** unreachable hosts now time out in ~20s with a clear error. Check the address, port and that SSH is running.
 - **UI-only dev in a browser (`npm start`) shows errors:** that mode has no Rust backend, so SSH/SFTP calls fail — use `npm run tauri dev` for the real app.
 
