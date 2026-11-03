@@ -7,11 +7,11 @@
 **A fast, lightweight SSH & SFTP manager for Windows, macOS and Linux.**
 Hosts, live server dashboards, real terminals and saved commands — in one clean desktop app. No accounts, no telemetry.
 
-[![Latest release](https://img.shields.io/github/v/release/devstudio-us/ssh-studio?label=download&color=f5872a)](https://github.com/devstudio-us/ssh-studio/releases/latest)
-[![Downloads](https://img.shields.io/github/downloads/devstudio-us/ssh-studio/total?color=f5872a)](https://github.com/devstudio-us/ssh-studio/releases)
-[![License](https://img.shields.io/github/license/devstudio-us/ssh-studio)](LICENSE)
+[![Latest release](https://img.shields.io/github/v/release/devstudio-us/SSHStudio?label=download&color=f5872a)](https://github.com/devstudio-us/SSHStudio/releases/latest)
+[![Downloads](https://img.shields.io/github/downloads/devstudio-us/SSHStudio/total?color=f5872a)](https://github.com/devstudio-us/SSHStudio/releases)
+[![License](https://img.shields.io/github/license/devstudio-us/SSHStudio)](LICENSE)
 ![Platforms](https://img.shields.io/badge/platforms-Windows%20%7C%20macOS%20%7C%20Linux-informational)
-[![Stars](https://img.shields.io/github/stars/devstudio-us/ssh-studio?style=flat)](https://github.com/devstudio-us/ssh-studio/stargazers)
+[![Stars](https://img.shields.io/github/stars/devstudio-us/SSHStudio?style=flat)](https://github.com/devstudio-us/SSHStudio/stargazers)
 
 [**Download**](#download--install) · [Features](#features) · [Build from source](#build-from-source) · [How it works](#how-it-works) · [Contributing](CONTRIBUTING.md)
 
@@ -27,7 +27,7 @@ Hosts, live server dashboards, real terminals and saved commands — in one clea
 
 ## Download & install
 
-Grab the file for your OS from the **[Releases page](https://github.com/devstudio-us/ssh-studio/releases/latest)**, then follow the steps for that OS. No sign-up, nothing to configure first.
+Grab the file for your OS from the **[Releases page](https://github.com/devstudio-us/SSHStudio/releases/latest)**, then follow the steps for that OS. No sign-up, nothing to configure first.
 
 | Platform | File to download |
 |----------|------------------|
@@ -127,8 +127,8 @@ Then the native build tools for **your** OS:
 These commands are **the same on Windows, macOS and Linux**:
 
 ```bash
-git clone https://github.com/devstudio-us/ssh-studio.git
-cd ssh-studio
+git clone https://github.com/devstudio-us/SSHStudio.git
+cd SSHStudio
 npm install
 npm run tauri dev       # run the app in development
 npm run tauri build     # build an installer for your current OS
@@ -168,6 +168,6 @@ Contributions are welcome — see **[CONTRIBUTING.md](CONTRIBUTING.md)** for how
 
 If SSHStudio is useful to you, a ⭐ on the repo is appreciated.
 
-[Report a bug](https://github.com/devstudio-us/ssh-studio/issues) · [Request a feature](https://github.com/devstudio-us/ssh-studio/issues)
+[Report a bug](https://github.com/devstudio-us/SSHStudio/issues) · [Request a feature](https://github.com/devstudio-us/SSHStudio/issues)
 
 </div>

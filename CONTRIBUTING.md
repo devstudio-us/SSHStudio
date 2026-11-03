@@ -4,7 +4,7 @@ Thanks for your interest! Bug reports, ideas and pull requests are all welcome. 
 
 ## Ways to help
 
-- **Found a bug or have an idea?** Open an [issue](https://github.com/devstudio-us/ssh-studio/issues). For bugs, include your **OS**, what you did, what you expected, and what actually happened (a screenshot helps a lot).
+- **Found a bug or have an idea?** Open an [issue](https://github.com/devstudio-us/SSHStudio/issues). For bugs, include your **OS**, what you did, what you expected, and what actually happened (a screenshot helps a lot).
 - **Want to fix or build something?** Small, focused PRs are easiest to review. For anything large, please open an issue first so we can agree on the approach before you write code.
 
 ## Get it running
@@ -12,8 +12,8 @@ Thanks for your interest! Bug reports, ideas and pull requests are all welcome. 
 You'll need **Node.js ≥ 22.22.3** (or 24.x), the latest stable **Rust**, and your OS's native build tools. The full per-OS setup is in the README's [Build from source](README.md#build-from-source) section.
 
 ```bash
-git clone https://github.com/devstudio-us/ssh-studio.git
-cd ssh-studio
+git clone https://github.com/devstudio-us/SSHStudio.git
+cd SSHStudio
 npm install
 npm run tauri dev
 ```
