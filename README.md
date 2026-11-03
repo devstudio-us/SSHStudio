@@ -83,18 +83,6 @@ Every host on one screen. Connect one and its card goes live with **CPU, memory,
 
 <p align="center"><img src="docs/screenshots/dashboard.png" width="860" alt="Dashboard" /></p>
 
-### 💻 Terminals
-
-Real interactive shells powered by [xterm.js](https://xtermjs.org/). Open **multiple tabs per server** — each its own independent shell — and the saved **commands panel** sits right beside the terminal so your snippets are one click away.
-
-<p align="center"><img src="docs/screenshots/terminal.png" width="860" alt="Terminal with tabs and the commands side panel" /></p>
-
-### 📁 SFTP file browser
-
-A **two-pane browser** — your computer on the left, the server on the right. Upload, download (files *or* whole folders), drag between panes, make/rename/delete remote folders, with overwrite prompts and live progress.
-
-<p align="center"><img src="docs/screenshots/sftp.png" width="860" alt="Two-pane SFTP file browser" /></p>
-
 ### ⌨️ Commands
 
 Save reusable commands and snippets, **grouped by scope** — a Global section plus one per server. Each section sorts on its own, rows **drag to reorder**, expand to show the full command and a description, and **run straight into a terminal**.
@@ -103,6 +91,8 @@ Save reusable commands and snippets, **grouped by scope** — a Global section p
 
 ### …and the small things
 
+- **Multi-tab terminals** — real interactive shells (xterm.js), with several independent tabs per server and your saved commands one click away.
+- **Two-pane SFTP** — browse your computer and the server side by side; upload and download files or whole folders, with overwrite prompts and live progress.
 - **Key or password auth** — pick per host; passwords are saved in your **OS keychain**, never in a config file.
 - **Light & dark themes**, matching your system by default.
 - **Strict host-key checking** — trust on first connect, refuse on a changed key.
