@@ -1,112 +1,144 @@
+<div align="center">
+
+<img src="docs/logo.png" width="112" alt="SSHStudio" />
+
 # SSHStudio
 
-A lightweight, cross-platform SSH server manager for **Windows, macOS, and Linux**.
-No accounts, no telemetry. Inspired by OmnySSH.
+**A fast, lightweight SSH & SFTP manager for Windows, macOS and Linux.**
+Hosts, live server dashboards, real terminals and saved commands — in one clean desktop app. No accounts, no telemetry.
 
-Built with **Tauri 2** (Rust backend) + **Angular** (TypeScript frontend), with
-[xterm.js](https://xtermjs.org/) for the terminal.
+[![Latest release](https://img.shields.io/github/v/release/devstudio-us/ssh-studio?label=download&color=f5872a)](https://github.com/devstudio-us/ssh-studio/releases/latest)
+[![Downloads](https://img.shields.io/github/downloads/devstudio-us/ssh-studio/total?color=f5872a)](https://github.com/devstudio-us/ssh-studio/releases)
+[![License](https://img.shields.io/github/license/devstudio-us/ssh-studio)](LICENSE)
+![Platforms](https://img.shields.io/badge/platforms-Windows%20%7C%20macOS%20%7C%20Linux-informational)
+[![Stars](https://img.shields.io/github/stars/devstudio-us/ssh-studio?style=flat)](https://github.com/devstudio-us/ssh-studio/stargazers)
+
+[**Download**](#download) · [Features](#features) · [Build from source](#build-from-source) · [How it works](#how-it-works) · [Contributing](CONTRIBUTING.md)
+
+</div>
+
+<br />
+
+<p align="center">
+  <img src="docs/screenshots/dashboard.png" width="900" alt="SSHStudio dashboard with live server metrics" />
+</p>
+
+---
+
+## Download
+
+Grab the latest installer for your OS from the **[Releases page](https://github.com/devstudio-us/ssh-studio/releases/latest)**:
+
+| Platform | File |
+|----------|------|
+| **Windows** | `.exe` (installer) or `.msi` |
+| **macOS** (Apple Silicon) | `SSHStudio_x.y.z_aarch64.dmg` |
+| **macOS** (Intel) | `SSHStudio_x.y.z_x64.dmg` |
+| **Linux** | `.AppImage` or `.deb` |
+
+Download, run it, and you're in — no sign-up, nothing to configure first.
+
+> **macOS note:** the app isn't code-signed yet, so on first launch macOS may say it "can't be opened." Right-click the app → **Open** → **Open**, or run `xattr -cr /Applications/SSHStudio.app` once. (A signed, notarized build is planned.)
+
+---
 
 ## Features
 
-- **Hosts** — manage SSH servers in a simple list (stored as TOML on disk).
-- **Terminal** — connect with a private key or password; full interactive shell
-  via xterm.js. Multiple tabs per host share one authenticated connection, each
-  its own independent shell.
-- **Dashboard** — live CPU / memory / disk / load / uptime for connected hosts.
-- **SFTP** — two-pane file browser (local ↔ remote): navigate, drag-and-drop,
-  upload/download files *and* whole folders, with overwrite protection and
-  progress bars. Create / rename / delete on the remote side.
-- **Commands** — save reusable commands and notes, global or per-host, and run
-  them straight into a terminal.
-- **Security** — strict host-key verification (trust-on-first-use, refuse on
-  mismatch). Passwords and key passphrases are held in memory only, never
-  written to disk or logged. Private keys are referenced by path, never copied.
+### 📊 Dashboard
 
-## Prerequisites
+Every host on one screen. Connect one and its card goes live with **CPU, memory, disk, load average and uptime**, refreshing every few seconds. A host that can't be reached shows the error inline so you know exactly what's wrong.
 
-Install these once per machine:
+<p align="center"><img src="docs/screenshots/dashboard.png" width="860" alt="Dashboard" /></p>
 
-| Tool | Version | Notes |
-|------|---------|-------|
-| [Node.js](https://nodejs.org) | **≥ 22.22.3** (or 24.x) | Angular 22 requires it; older Node fails the build. |
-| [Rust](https://rustup.rs) | latest stable | The backend uses Rust edition 2024, so keep the toolchain current (`rustup update`). |
+### 💻 Terminals
 
-Plus the platform's native build dependencies:
+Real interactive shells powered by [xterm.js](https://xtermjs.org/). Open **multiple tabs per server** — each its own independent shell — and the saved **commands panel** sits right beside the terminal so your snippets are one click away.
 
-**Windows**
-- [Microsoft C++ Build Tools](https://visualstudio.microsoft.com/visual-cpp-build-tools/)
-  (or Visual Studio with "Desktop development with C++"). WebView2 ships with
-  Windows 10/11.
+<p align="center"><img src="docs/screenshots/terminal.png" width="860" alt="Terminal with tabs and the commands side panel" /></p>
 
-**macOS**
-```bash
-xcode-select --install
-```
-(The WebKit webview Tauri uses is already part of macOS — no extra libraries.)
+### 📁 SFTP file browser
 
-**Linux (Debian / Ubuntu)**
-```bash
-sudo apt update && sudo apt install -y \
-  libwebkit2gtk-4.1-dev build-essential curl wget file \
-  libxdo-dev libssl-dev libayatana-appindicator3-dev librsvg2-dev
-```
+A **two-pane browser** — your computer on the left, the server on the right. Upload, download (files *or* whole folders), drag between panes, make/rename/delete remote folders, with overwrite prompts and live progress.
 
-See the [Tauri prerequisites guide](https://tauri.app/start/prerequisites/) for
-other distributions.
+<p align="center"><img src="docs/screenshots/sftp.png" width="860" alt="Two-pane SFTP file browser" /></p>
 
-## Getting started
+### ⌨️ Commands
+
+Save reusable commands and snippets, **grouped by scope** — a Global section plus one per server. Each section sorts on its own, rows **drag to reorder**, expand to show the full command and a description, and **run straight into a terminal**.
+
+<p align="center"><img src="docs/screenshots/commands.png" width="860" alt="Commands page grouped into sections" /></p>
+
+### …and the small things
+
+- **Key or password auth** — pick per host; passwords are saved in your **OS keychain**, never in a config file.
+- **Light & dark themes**, matching your system by default.
+- **Strict host-key checking** — trust on first connect, refuse on a changed key.
+- **Nothing phones home** — no accounts, no analytics, no telemetry.
+
+---
+
+## Build from source
+
+Want to run the latest, or hack on it?
+
+**Prerequisites**
+
+| Tool | Version |
+|------|---------|
+| [Node.js](https://nodejs.org) | **≥ 22.22.3** (or 24.x) |
+| [Rust](https://rustup.rs) | latest stable |
+
+Plus your platform's native build deps:
+
+- **Windows** — [Microsoft C++ Build Tools](https://visualstudio.microsoft.com/visual-cpp-build-tools/) (WebView2 ships with Windows).
+- **macOS** — `xcode-select --install`
+- **Linux (Debian/Ubuntu)** — `sudo apt install -y libwebkit2gtk-4.1-dev build-essential curl wget file libxdo-dev libssl-dev libayatana-appindicator3-dev librsvg2-dev`
+
+**Run it**
 
 ```bash
 git clone https://github.com/devstudio-us/ssh-studio.git
 cd ssh-studio
 npm install
-npm run tauri dev
+npm run tauri dev      # launches the app in development
 ```
 
-`npm run tauri dev` launches the Angular dev server (port 1420) and opens the
-desktop app window.
+Build a production installer for your OS with `npm run tauri build`.
 
-> **First run is slow** — Cargo compiles all the Rust crates from scratch, which
-> can take several minutes. Subsequent runs are fast.
+> The first run is slow — Cargo compiles the Rust crates from scratch (a few minutes). After that it's fast.
 
-## Commands
+---
 
-Run from the repo root unless noted. Cargo commands run from `src-tauri/`.
+## How it works
 
-| Command | What it does |
-|---------|--------------|
-| `npm run tauri dev` | Run the full app in development (the usual command). |
-| `npm run tauri build` | Build a production desktop installer for the current OS. |
-| `npm start` / `ng serve` | Angular frontend only, in a browser. **`invoke` calls fail here** — no Rust backend, so SSH/SFTP won't work. UI-only work. |
-| `ng build` | Build the Angular frontend (output: `dist/sshstudio/browser`). |
-| `cargo build` / `cargo clippy` | From `src-tauri/`; run after any Rust change. |
+SSHStudio is a single **Angular** app talking to a thin **Rust** backend over **Tauri 2**'s IPC. The Rust layer only does the heavy lifting — networking, filesystem, PTY and keychain — while all the product logic lives in Angular.
 
-## Project layout
+- **SSH / SFTP:** the `russh` + `russh-sftp` crates.
+- **Secrets:** saved passwords go to the OS keychain via the `keyring` crate.
+- **Config:** hosts and commands are plain TOML (`hosts.toml`, `notes.toml`) in your OS config directory; host fingerprints live in `known_hosts.toml`. **Secrets are never written to these files.**
 
-```
-src/            Angular frontend (standalone components, signals)
-src-tauri/      Rust backend (Tauri commands: SSH, SFTP, metrics, hosts store)
-  src/lib.rs    App entry point + the Tauri command registry
-```
+---
 
-The frontend is one Angular SPA talking to the Rust backend over Tauri's IPC.
-The Rust layer stays thin — only networking, filesystem, PTY, and keychain —
-with product logic in Angular. A Tauri command is a Rust function annotated
-`#[tauri::command]` and registered in [`src-tauri/src/lib.rs`](src-tauri/src/lib.rs);
-the frontend calls it with `invoke("name", { args })`.
+## Troubleshooting
 
-## Where your data lives
+- **macOS "can't be opened" / "damaged":** see the [macOS note](#download) above — the build isn't signed yet; right-click → Open, or `xattr -cr`.
+- **A host hangs on connect:** unreachable hosts now time out in ~20s with a clear error. Check the address, port and that SSH is running.
+- **UI-only dev in a browser (`npm start`) shows errors:** that mode has no Rust backend, so SSH/SFTP calls fail — use `npm run tauri dev` for the real app.
 
-Config is stored as TOML in your OS config directory (e.g. `hosts.toml`,
-`notes.toml`, `known_hosts.toml`). Secrets are never stored there — they live in
-memory only for the duration of a session.
+---
 
-## Releases
+## Contributing
 
-Tagging a commit `vX.Y.Z` and pushing the tag triggers a GitHub Actions workflow
-that builds installers for Windows, macOS, and Linux and attaches them to a draft
-GitHub release. Downloads are on the
-[Releases page](https://github.com/devstudio-us/ssh-studio/releases).
+Contributions are welcome — see **[CONTRIBUTING.md](CONTRIBUTING.md)** for how to set up, what to run before a PR, and the project layout.
 
-> macOS builds are currently unsigned/un-notarized, so macOS will show a
-> Gatekeeper warning on first launch until an Apple Developer ID is configured.
+## License
+
+[MIT](LICENSE) © devstudio-us
+
+<div align="center">
+
+If SSHStudio is useful to you, a ⭐ on the repo is appreciated.
+
+[Report a bug](https://github.com/devstudio-us/ssh-studio/issues) · [Request a feature](https://github.com/devstudio-us/ssh-studio/issues)
+
+</div>
