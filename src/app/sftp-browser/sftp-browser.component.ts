@@ -62,6 +62,9 @@ export class SftpBrowserComponent {
   readonly downloadDir = signal("");
   /** Flips true once settings have loaded, so the auto-prompt waits for it. */
   private readonly settingsReady = signal(false);
+  /** Resolves when settings have loaded; awaited before the left pane picks a
+   *  starting folder so it can open the saved download folder. */
+  private settingsLoaded!: Promise<void>;
   /** Guards the first-time auto-prompt to once per app session. */
   private autoPrompted = false;
 
@@ -81,7 +84,7 @@ export class SftpBrowserComponent {
 
   constructor() {
     // Load the saved download folder once, up front.
-    void this.loadSettings();
+    this.settingsLoaded = this.loadSettings();
 
     // The first time the Files view is opened with no download folder saved,
     // prompt for one. Guarded so it fires at most once per session (a cancel
@@ -127,8 +130,16 @@ export class SftpBrowserComponent {
   private async initPanes(hostId: string): Promise<void> {
     this.localErr.set("");
     this.remoteErr.set("");
+    // Start the left pane at the saved download folder so you can see where
+    // downloads will land; fall back to the home folder if none is saved (or
+    // the saved one can't be opened).
+    await this.settingsLoaded;
     try {
-      await this.openLocal(await this.sftp.localHome());
+      const dd = this.downloadDir();
+      if (dd) await this.openLocal(dd);
+      if (!dd || this.localPath() !== dd) {
+        await this.openLocal(await this.sftp.localHome());
+      }
     } catch (e) {
       this.localErr.set(String(e));
     }
@@ -308,6 +319,9 @@ export class SftpBrowserComponent {
     try {
       await this.settings.setDownloadDir(dir);
       this.downloadDir.set(dir);
+      // Show the chosen folder's contents on the left so you can see where
+      // downloads will land.
+      await this.openLocal(dir);
       return true;
     } catch (e) {
       this.localErr.set(String(e));
