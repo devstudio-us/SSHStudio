@@ -5,6 +5,7 @@ import { UnlistenFn } from "@tauri-apps/api/event";
 import { Host } from "../models/host.model";
 import { FileEntry } from "../models/file-entry.model";
 import { SftpService } from "../services/sftp.service";
+import { SettingsService } from "../services/settings.service";
 import { AutofocusDirective } from "../directives/autofocus.directive";
 
 type Side = "local" | "remote";
@@ -37,8 +38,9 @@ interface Ask {
 /**
  * Two-pane SFTP browser: local files on the left, the host's files on the
  * right. Navigate with double-click, select (click to toggle), transfer with
- * the arrow buttons or by dragging between panes. Remote-side management
- * (new folder / rename / delete) is available on the right pane.
+ * the arrow buttons. Downloads go to a saved app-wide folder (chosen the first
+ * time Files is opened, changeable any time). Remote-side management (new
+ * folder / rename / delete) is available on the right pane.
  */
 @Component({
   selector: "app-sftp-browser",
@@ -48,8 +50,20 @@ interface Ask {
 })
 export class SftpBrowserComponent {
   readonly host = input.required<Host>();
+  /** True while the Files view is actually on screen (not just mounted). Used
+   *  to fire the first-time "choose a download folder" prompt only when the
+   *  user has really opened Files, not merely while a terminal is active. */
+  readonly active = input(false);
 
   private readonly sftp = inject(SftpService);
+  private readonly settings = inject(SettingsService);
+
+  /** Saved download folder ("" until chosen). Downloads always land here. */
+  readonly downloadDir = signal("");
+  /** Flips true once settings have loaded, so the auto-prompt waits for it. */
+  private readonly settingsReady = signal(false);
+  /** Guards the first-time auto-prompt to once per app session. */
+  private autoPrompted = false;
 
   readonly localPath = signal("");
   readonly remotePath = signal("");
@@ -66,6 +80,24 @@ export class SftpBrowserComponent {
   askValue = "";
 
   constructor() {
+    // Load the saved download folder once, up front.
+    void this.loadSettings();
+
+    // The first time the Files view is opened with no download folder saved,
+    // prompt for one. Guarded so it fires at most once per session (a cancel
+    // won't nag on every toggle — Download will ask again when used).
+    effect(() => {
+      if (
+        this.active() &&
+        this.settingsReady() &&
+        !this.downloadDir() &&
+        !this.autoPrompted
+      ) {
+        this.autoPrompted = true;
+        void this.chooseDownloadDir();
+      }
+    });
+
     // Load both panes whenever the browsed host changes.
     effect(() => {
       const id = this.host().id;
@@ -204,22 +236,35 @@ export class SftpBrowserComponent {
     const targets = this.remoteEntries().filter((e) => this.remoteSel().has(e.path));
     if (!targets.length) return;
 
-    const existing = new Set(this.localEntries().map((e) => e.name));
+    // Downloads go to the saved folder; prompt/validate it first.
+    const dest = await this.ensureDownloadDir();
+    if (!dest) return;
+
+    // Anything with the same name already in the download folder would be
+    // replaced; ask first. (Folders merge, overwriting files inside.)
+    let existing = new Set<string>();
+    try {
+      existing = new Set((await this.sftp.localList(dest)).map((e) => e.name));
+    } catch {
+      // ensureDownloadDir already confirmed the folder is listable; ignore.
+    }
     const clashes = targets.filter((t) => existing.has(t.name)).map((t) => t.name);
-    if (clashes.length && !(await this.confirmOverwrite(clashes, "this computer"))) return;
+    if (clashes.length && !(await this.confirmOverwrite(clashes, this.downloadDirName()))) return;
 
     const hostId = this.host().id;
     for (const entry of targets) {
-      const dest = this.joinLocal(this.localPath(), entry.name);
+      const to = this.joinLocal(dest, entry.name);
       await this.runTransfer("down", entry.name, (id) =>
         entry.is_dir
-          ? this.sftp.downloadDir(hostId, entry.path, dest, id)
-          : this.sftp.download(hostId, entry.path, dest, id),
+          ? this.sftp.downloadDir(hostId, entry.path, to, id)
+          : this.sftp.download(hostId, entry.path, to, id),
       );
     }
     // Clear the source selection so the next pick starts fresh.
     this.clearSel("remote");
-    await this.openLocal(this.localPath());
+    // Refresh the left pane only when it happens to be showing the download
+    // folder, so freshly downloaded items appear.
+    if (this.localPath() === dest) await this.openLocal(dest);
   }
 
   private hostLabel(): string {
@@ -227,22 +272,62 @@ export class SftpBrowserComponent {
     return h.name || h.hostname;
   }
 
-  /** The name of the local folder downloads currently land in (left pane). */
-  localFolderName(): string {
-    const p = this.localPath().replace(/[\\/]+$/, "");
-    const i = Math.max(p.lastIndexOf("/"), p.lastIndexOf("\\"));
-    return (i >= 0 ? p.slice(i + 1) : p) || p || "this computer";
+  // --- download folder (a saved, app-wide preference) ---
+
+  private async loadSettings(): Promise<void> {
+    try {
+      const s = await this.settings.getSettings();
+      this.downloadDir.set(s.download_dir ?? "");
+    } catch {
+      // Treat a load failure as "not set"; the user can still pick a folder.
+    } finally {
+      this.settingsReady.set(true);
+    }
   }
 
-  /** Pick a folder, then download the selected remote files into it. Navigates
-   *  the left pane there first so the chosen folder (and its downloads) show. */
-  async downloadTo(): Promise<void> {
-    if (this.selectedCount("remote") === 0) return;
-    const dir = await open({ directory: true, multiple: false, title: "Download to folder" });
-    if (typeof dir !== "string") return; // cancelled
-    await this.openLocal(dir);
-    if (this.localPath() !== dir) return; // folder couldn't be opened
-    await this.download();
+  /** The last path segment of the saved download folder, for compact display. */
+  downloadDirName(): string {
+    const p = this.downloadDir().replace(/[\\/]+$/, "");
+    if (!p) return "Choose a folder…";
+    const i = Math.max(p.lastIndexOf("/"), p.lastIndexOf("\\"));
+    return (i >= 0 ? p.slice(i + 1) : p) || p;
+  }
+
+  /** Tooltip for the Download button. */
+  downloadTitle(): string {
+    return this.downloadDir()
+      ? `Download selected into ${this.downloadDir()}`
+      : "Choose a download folder, then download";
+  }
+
+  /** Open the folder picker and, if a folder is chosen, save it as the default
+   *  download folder. Returns true when a folder was chosen and saved. */
+  async chooseDownloadDir(): Promise<boolean> {
+    const dir = await open({ directory: true, multiple: false, title: "Choose a download folder" });
+    if (typeof dir !== "string") return false; // cancelled
+    try {
+      await this.settings.setDownloadDir(dir);
+      this.downloadDir.set(dir);
+      return true;
+    } catch (e) {
+      this.localErr.set(String(e));
+      return false;
+    }
+  }
+
+  /** Resolve a usable download folder, prompting if none is saved or the saved
+   *  one is no longer available. Returns null if the user cancels. */
+  private async ensureDownloadDir(): Promise<string | null> {
+    const dir = this.downloadDir();
+    if (dir) {
+      try {
+        await this.sftp.localList(dir);
+        return dir;
+      } catch {
+        this.localErr.set(`Download folder "${dir}" isn't available. Choose another.`);
+      }
+    }
+    return (await this.chooseDownloadDir()) ? this.downloadDir() : null;
   }
 
   /** Ask before replacing existing items at the destination. Resolves true to

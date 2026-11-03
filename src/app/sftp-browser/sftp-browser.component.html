@@ -49,21 +49,21 @@
       type="button"
       [disabled]="selectedCount('remote') === 0"
       (click)="download()"
-      [title]="'Download selected into ' + localPath()"
+      [title]="downloadTitle()"
     >
       ← Download
     </button>
-    <p class="dest" [title]="localPath()">
-      into <span class="dest-folder">{{ localFolderName() }}</span>
-    </p>
+    <div class="dest" [title]="downloadDir() || 'No download folder chosen yet'">
+      <span class="dest-cap">Saves to</span>
+      <span class="dest-folder">{{ downloadDirName() }}</span>
+    </div>
     <button
       class="xfer-alt"
       type="button"
-      [disabled]="selectedCount('remote') === 0"
-      (click)="downloadTo()"
-      title="Choose a folder to download into"
+      (click)="chooseDownloadDir()"
+      title="Change the download folder"
     >
-      Download to…
+      Change folder…
     </button>
   </div>
 

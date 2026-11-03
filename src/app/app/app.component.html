@@ -231,6 +231,7 @@
         <app-sftp-browser
           class="ws-pane"
           [host]="h"
+          [active]="view() === 'terminals' && workspaceMode() === 'files'"
           [style.display]="workspaceMode() === 'files' ? 'flex' : 'none'"
         />
       }

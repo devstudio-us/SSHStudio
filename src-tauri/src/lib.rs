@@ -2,6 +2,7 @@ mod hosts;
 mod metrics;
 mod notes;
 mod secrets;
+mod settings;
 mod sftp;
 mod ssh;
 
@@ -45,6 +46,8 @@ pub fn run() {
             sftp::sftp_disconnect,
             sftp::local_home,
             sftp::local_list,
+            settings::get_settings,
+            settings::set_download_dir,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
