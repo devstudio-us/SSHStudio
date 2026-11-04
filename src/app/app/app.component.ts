@@ -17,14 +17,16 @@ import { NotesManagerComponent } from "../notes-manager/notes-manager.component"
 import { NotePanelComponent } from "../note-panel/note-panel.component";
 import { SftpBrowserComponent } from "../sftp-browser/sftp-browser.component";
 import { SelectComponent, SelectOption } from "../select/select.component";
+import { SettingsComponent } from "../settings/settings.component";
 import { AutofocusDirective } from "../directives/autofocus.directive";
 import { NotesService } from "../services/notes.service";
 import { SftpService } from "../services/sftp.service";
 import { SecretsService } from "../services/secrets.service";
+import { UpdateService } from "../services/update.service";
 import { Host } from "../models/host.model";
 import { Note } from "../models/note.model";
 
-type View = "terminals" | "dashboard" | "notes";
+type View = "terminals" | "dashboard" | "notes" | "settings";
 /** Within the host workspace (terminals view), show the shells or the files. */
 type WorkspaceMode = "terminal" | "files";
 
@@ -87,6 +89,7 @@ interface ConfirmState {
     NotePanelComponent,
     SftpBrowserComponent,
     SelectComponent,
+    SettingsComponent,
     AutofocusDirective,
   ],
   templateUrl: "./app.component.html",
@@ -99,11 +102,17 @@ export class AppComponent implements OnInit {
   private readonly notesService = inject(NotesService);
   private readonly sftp = inject(SftpService);
   private readonly secrets = inject(SecretsService);
+  private readonly update = inject(UpdateService);
   private readonly cdr = inject(ChangeDetectorRef);
 
   readonly hosts = this.hostsService.hosts;
   readonly notes = this.notesService.notes;
   readonly theme = this.themeService.theme;
+  /** True when the update check found a newer release — shows a dot on the
+   * Settings nav item. */
+  readonly updateAvailable = computed(
+    () => this.update.status().state === "available",
+  );
 
   readonly view = signal<View>("dashboard");
   /** Terminal vs Files within the active host's workspace. */
@@ -187,6 +196,9 @@ export class AppComponent implements OnInit {
 
   async ngOnInit(): Promise<void> {
     await Promise.all([this.loadHosts(), this.loadNotes()]);
+    // Weekly "is there a newer release?" check (if enabled and due). Runs in the
+    // background; failures are swallowed so startup is never blocked by it.
+    void this.update.maybeAutoCheck();
   }
 
   async loadHosts(): Promise<void> {

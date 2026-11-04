@@ -77,10 +77,12 @@
   border-bottom: 1px solid var(--border);
 }
 
-.side-nav button {
+.side-nav button,
+.side-foot button {
   display: flex;
   align-items: center;
   gap: 0.6rem;
+  width: 100%;
   padding: 0.5rem 0.6rem;
   border-radius: var(--radius-sm);
   font-size: 0.9rem;
@@ -90,14 +92,33 @@
   text-align: left;
 }
 
-.side-nav button:hover {
+.side-nav button:hover,
+.side-foot button:hover {
   background-color: var(--surface-hover);
   color: var(--text);
 }
 
-.side-nav button.active {
+.side-nav button.active,
+.side-foot button.active {
   background-color: var(--accent-soft);
   color: var(--accent);
+}
+
+/* Settings pinned to the bottom of the sidebar. */
+.side-foot {
+  margin-top: auto;
+  padding-top: 0.6rem;
+  border-top: 1px solid var(--border);
+}
+
+/* "Update available" dot on the Settings item. */
+.upd-dot {
+  margin-left: auto;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background-color: var(--accent);
+  flex-shrink: 0;
 }
 
 .theme-toggle {
@@ -189,7 +210,8 @@
 }
 
 .view-dashboard,
-.view-notes {
+.view-notes,
+.view-settings {
   flex: 1;
   min-height: 0;
 }
