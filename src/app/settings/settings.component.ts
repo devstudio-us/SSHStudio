@@ -52,7 +52,13 @@ export class SettingsComponent {
     void this.update.check();
   }
 
-  download(): void {
+  /** Banner primary action: install in-app when possible, else open download. */
+  install(): void {
+    void this.update.installOrDownload();
+  }
+
+  /** Open the release page (release notes / manual download). */
+  openReleasePage(): void {
     void this.update.openDownloadPage();
   }
 

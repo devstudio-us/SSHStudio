@@ -8,9 +8,17 @@ mod ssh;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    tauri::Builder::default()
+    let builder = tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_process::init());
+
+    // The updater plugin exists on desktop only. Its config (endpoint + public
+    // key) lives in tauri.conf.json under `plugins.updater`.
+    #[cfg(desktop)]
+    let builder = builder.plugin(tauri_plugin_updater::Builder::new().build());
+
+    builder
         .manage(ssh::SessionManager::new())
         .manage(metrics::MetricsManager::new())
         .manage(sftp::SftpManager::new())

@@ -34,8 +34,8 @@
 
   <!-- ===================== Updates ===================== -->
   <section class="card">
-    <!-- Prominent banner, shown only when a newer release was found. -->
-    @if (update.status().state === "available") {
+    <!-- Prominent banner, shown when a newer release is found or installing. -->
+    @if (update.status().state === "available" || update.status().state === "installing") {
       <div class="hero-card">
         <div class="hero-l">
           <span class="hero-badge">
@@ -46,11 +46,20 @@
           <div class="hero-sub">You're on v{{ update.status().current }}.</div>
         </div>
         <div class="hero-r">
-          <button class="btn primary lg" type="button" (click)="download()">
-            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 10l5 5 5-5M5 21h14" /></svg>
-            Download update
+          <button
+            class="btn primary lg"
+            type="button"
+            (click)="install()"
+            [disabled]="update.status().state === 'installing'"
+          >
+            @if (update.status().state === "installing") {
+              <span class="spinner"></span> Installing…
+            } @else {
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 10l5 5 5-5M5 21h14" /></svg>
+              {{ update.canInstall() ? "Install & restart" : "Download update" }}
+            }
           </button>
-          <button class="linkbtn" type="button" (click)="download()">View release notes</button>
+          <button class="linkbtn" type="button" (click)="openReleasePage()">View release notes</button>
         </div>
       </div>
     }

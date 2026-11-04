@@ -1,6 +1,8 @@
 import { Injectable, signal } from "@angular/core";
 import { getVersion } from "@tauri-apps/api/app";
 import { openUrl } from "@tauri-apps/plugin-opener";
+import { check as checkForUpdate, Update } from "@tauri-apps/plugin-updater";
+import { relaunch } from "@tauri-apps/plugin-process";
 
 /** GitHub repo the releases are published under. */
 const REPO = "devstudio-us/SSHStudio";
@@ -22,6 +24,7 @@ export type UpdateState =
   | "checking"
   | "current"
   | "available"
+  | "installing"
   | "error";
 
 export interface UpdateStatus {
@@ -32,37 +35,41 @@ export interface UpdateStatus {
   latest?: string;
   /** Release notes (markdown) for an available update. */
   notes?: string;
-  /** The release page to open for a download. */
+  /** The release page to open (release notes / manual download fallback). */
   url?: string;
   error?: string;
 }
 
 /**
- * "Check & notify" updater: there's no in-app install (the app isn't signed/
- * notarized yet). It asks the GitHub Releases API for the latest version and,
- * if it's newer than the running build, surfaces it so the user can open the
- * download page. The weekly auto-check runs at startup when enabled.
+ * Updater. Uses Tauri's signed updater as the primary path: it checks a
+ * signed manifest, and (when the user asks, or auto-install is on) downloads,
+ * installs and relaunches in-app. If the updater is unavailable — in `ng serve`,
+ * or against a release that predates updater artifacts — it falls back to a
+ * GitHub Releases API check so the user is still notified and can download
+ * manually.
  *
- * State is kept in localStorage (per machine) — no backend or config file.
+ * Preferences (enabled / auto-install / last-checked) live in localStorage.
  */
 @Injectable({ providedIn: "root" })
 export class UpdateService {
-  /** Whether in-app silent install is possible. False until the app ships
-   * signed builds with the Tauri updater; the "Install automatically" toggle
-   * still saves the user's preference so it takes effect once this flips true. */
-  readonly installSupported = false;
+  /** In-app silent install is available (signed updater is configured). */
+  readonly installSupported = true;
 
   /** The running app version, loaded once from Tauri. */
   readonly version = signal<string>("");
   /** Whether the daily background check is enabled. */
   readonly autoCheck = signal<boolean>(UpdateService.loadEnabled());
-  /** Whether the user wants updates installed automatically (preference only
-   * until installSupported is true). */
+  /** Whether the user wants updates installed automatically. */
   readonly autoInstall = signal<boolean>(UpdateService.loadAutoInstall());
   readonly status = signal<UpdateStatus>({ state: "idle" });
   /** Epoch ms of the last completed check, or null if never. */
   readonly lastChecked = signal<number | null>(UpdateService.loadLastCheck());
+  /** True when an in-app installable update is ready (drives the button label;
+   * false when we only know of an update via the GitHub fallback). */
+  readonly canInstall = signal(false);
 
+  /** The pending updater handle to install, when one is available. */
+  private pendingUpdate: Update | null = null;
   private timer: ReturnType<typeof setInterval> | null = null;
 
   constructor() {
@@ -73,9 +80,7 @@ export class UpdateService {
       .catch(() => {});
   }
 
-  /** Start a background timer that keeps the daily check running even if the
-   * app window is left open for days. Idempotent. maybeAutoCheck() itself
-   * throttles, so re-evaluating often is cheap. */
+  /** Keep the daily check running even if the window stays open for days. */
   startAutoTimer(): void {
     if (this.timer !== null) return;
     this.timer = setInterval(() => void this.maybeAutoCheck(), TIMER_MS);
@@ -98,7 +103,7 @@ export class UpdateService {
       // ignore — preference still applies in-memory for this session.
     }
     // Installing requires checking, so turning auto-install on enables the
-    // daily check too (relevant once in-app install is supported).
+    // daily check too.
     if (on && !this.autoCheck()) this.setAutoCheck(true);
   }
 
@@ -111,34 +116,59 @@ export class UpdateService {
     await this.check();
   }
 
-  /** Query GitHub for the latest release and compare to the running version. */
+  /** Check for a newer release. Prefers the signed updater; falls back to the
+   * GitHub API so the user is still notified when the updater can't run. */
   async check(): Promise<void> {
     this.status.set({ state: "checking" });
-    try {
-      const current = this.version() || (await getVersion());
-      this.version.set(current);
+    const current = this.version() || (await getVersion().catch(() => ""));
+    if (current) this.version.set(current);
 
+    try {
+      const upd = await checkForUpdate();
+      this.markChecked();
+      if (upd) {
+        this.pendingUpdate = upd;
+        this.canInstall.set(true);
+        this.status.set({
+          state: "available",
+          current: upd.currentVersion || current,
+          latest: upd.version,
+          notes: upd.body ?? "",
+          url: RELEASES_PAGE,
+        });
+        // Auto-install if the user opted in.
+        if (this.autoInstall()) await this.installUpdate();
+      } else {
+        this.pendingUpdate = null;
+        this.canInstall.set(false);
+        this.status.set({ state: "current", current });
+      }
+    } catch (e) {
+      // Updater unavailable (dev, or a release without a manifest yet): still
+      // notify via the GitHub API. Manual install then opens the download page.
+      const ok = await this.checkViaGithub(current);
+      if (!ok) {
+        this.status.set({ state: "error", current, error: String(e) });
+      }
+    }
+  }
+
+  /** Fallback: ask the GitHub Releases API whether a newer version exists. */
+  private async checkViaGithub(current: string): Promise<boolean> {
+    try {
       const res = await fetch(LATEST_API, {
         headers: { Accept: "application/vnd.github+json" },
       });
-      if (!res.ok) {
-        throw new Error(`GitHub returned ${res.status} ${res.statusText}`);
-      }
+      if (!res.ok) throw new Error(`GitHub returned ${res.status}`);
       const data = (await res.json()) as {
         tag_name?: string;
         html_url?: string;
         body?: string;
       };
       const latest = (data.tag_name ?? "").replace(/^v/i, "");
-
-      const now = Date.now();
-      this.lastChecked.set(now);
-      try {
-        localStorage.setItem(LAST_CHECK_KEY, String(now));
-      } catch {
-        // ignore
-      }
-
+      this.markChecked();
+      this.pendingUpdate = null;
+      this.canInstall.set(false);
       if (latest && UpdateService.isNewer(latest, current)) {
         this.status.set({
           state: "available",
@@ -150,6 +180,24 @@ export class UpdateService {
       } else {
         this.status.set({ state: "current", current, latest });
       }
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  /** Install the pending update in-app and relaunch; falls back to opening the
+   * download page if in-app install isn't possible. */
+  async installUpdate(): Promise<void> {
+    const upd = this.pendingUpdate;
+    if (!this.installSupported || !upd) {
+      await this.openDownloadPage();
+      return;
+    }
+    this.status.update((s) => ({ ...s, state: "installing" }));
+    try {
+      await upd.downloadAndInstall();
+      await relaunch();
     } catch (e) {
       this.status.set({
         state: "error",
@@ -159,15 +207,33 @@ export class UpdateService {
     }
   }
 
+  /** The banner's primary action: install in-app when possible, else download. */
+  async installOrDownload(): Promise<void> {
+    if (this.installSupported && this.pendingUpdate) {
+      await this.installUpdate();
+    } else {
+      await this.openDownloadPage();
+    }
+  }
+
   /** Open the release/download page in the user's browser. */
   async openDownloadPage(): Promise<void> {
-    const url = this.status().url || RELEASES_PAGE;
-    await openUrl(url);
+    await openUrl(this.status().url || RELEASES_PAGE);
   }
 
   /** Open an arbitrary external link (About section). */
   async openExternal(url: string): Promise<void> {
     await openUrl(url);
+  }
+
+  private markChecked(): void {
+    const now = Date.now();
+    this.lastChecked.set(now);
+    try {
+      localStorage.setItem(LAST_CHECK_KEY, String(now));
+    } catch {
+      // ignore
+    }
   }
 
   /** Is version `a` newer than version `b`? Lenient dotted-number compare. */
