@@ -108,6 +108,9 @@ export class AppComponent implements OnInit {
   readonly view = signal<View>("dashboard");
   /** Terminal vs Files within the active host's workspace. */
   readonly workspaceMode = signal<WorkspaceMode>("terminal");
+  /** Mobile only: whether the host/nav sidebar drawer is open. On desktop the
+   * sidebar is always in the layout and this flag is ignored by the CSS. */
+  readonly sidebarOpen = signal(false);
   /** Host ids with at least one live terminal session — the single source of
    * truth for "connected". Drives both the sidebar list and the dashboard's
    * monitored state, so they can never disagree. Closing a host's last tab (or
@@ -208,6 +211,19 @@ export class AppComponent implements OnInit {
 
   setView(view: View): void {
     this.view.set(view);
+    this.closeSidebar();
+  }
+
+  /** Toggle the mobile sidebar drawer (no effect on the desktop layout). */
+  toggleSidebar(): void {
+    this.sidebarOpen.update((v) => !v);
+  }
+
+  /** Close the mobile sidebar drawer. Called after any sidebar action that
+   * navigates or opens a modal, so the drawer gets out of the way on a phone.
+   * A no-op on desktop, where the sidebar is always shown. */
+  closeSidebar(): void {
+    this.sidebarOpen.set(false);
   }
 
   // --- Sessions / tabs ---
@@ -259,6 +275,7 @@ export class AppComponent implements OnInit {
     } else {
       void this.openHost(host);
     }
+    this.closeSidebar();
   }
 
   /** Number of live (not closed) terminals open for a host. */
@@ -388,6 +405,7 @@ export class AppComponent implements OnInit {
     event?.stopPropagation();
     this.focusOrOpenHost(host); // make it the active host, in the Terminals view
     this.workspaceMode.set("files");
+    this.closeSidebar();
   }
 
   /** Disconnect a host from the sidebar: close all its terminal sessions, so it
@@ -465,6 +483,7 @@ export class AppComponent implements OnInit {
     this.editHasPassword.set(false);
     this.removeSavedPassword.set(false);
     this.showHostForm.set(true);
+    this.closeSidebar();
   }
 
   /** Toggle "remove the saved password on save". */
@@ -501,6 +520,7 @@ export class AppComponent implements OnInit {
     });
     this.editingHostId.set(host.id);
     this.showHostForm.set(true);
+    this.closeSidebar();
   }
 
   closeHostForm(): void {

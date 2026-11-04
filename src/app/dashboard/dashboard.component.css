@@ -80,3 +80,23 @@
   grid-auto-rows: 1fr; /* every row takes the tallest card's height */
   gap: 1rem;
 }
+
+@media (max-width: 760px) {
+  :host {
+    padding: 1rem;
+  }
+  .dash-head {
+    margin-bottom: 1rem;
+  }
+  /* One card per row; drop the 320px floor so nothing overflows a phone. */
+  .dash-grid {
+    grid-template-columns: 1fr;
+  }
+  /* Let the search field share the row instead of forcing a fixed 200px. */
+  .dash-search {
+    flex: 1;
+  }
+  .dash-search input {
+    width: 100%;
+  }
+}

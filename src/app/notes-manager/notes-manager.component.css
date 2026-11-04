@@ -349,3 +349,25 @@
   background-color: var(--accent);
   color: var(--accent-contrast);
 }
+
+/* On touch devices there's no hover, so the per-row actions (edit/delete)
+   would never appear. Keep them visible there. */
+@media (hover: none) {
+  .acts {
+    opacity: 1;
+  }
+}
+
+@media (max-width: 760px) {
+  :host {
+    padding: 1rem;
+  }
+  .head {
+    margin-bottom: 0.85rem;
+  }
+  /* Search grows to fill the row rather than sitting at a fixed 220px. */
+  .search {
+    flex: 1 1 140px;
+    width: auto;
+  }
+}

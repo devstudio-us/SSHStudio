@@ -1,5 +1,18 @@
 <header class="topbar">
-  <div class="brand">
+  <div class="topbar-left">
+    <button
+      class="menu-toggle"
+      type="button"
+      (click)="toggleSidebar()"
+      [attr.aria-expanded]="sidebarOpen()"
+      aria-label="Toggle sidebar"
+      title="Menu"
+    >
+      <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M3 6h18M3 12h18M3 18h18" />
+      </svg>
+    </button>
+    <div class="brand">
     <svg class="brand-symbol" viewBox="0 0 256 256" role="img" aria-label="SSHStudio">
       <g fill="#ff8b33">
         <path d="M 44,14 A 14.0014,14.0014 0 0 0 30,28 v 84 a 14,14 0 0 0 14,14 14,14 0 0 0 14,-14 V 42 h 118 c 14.36362,0 26,11.636378 26,26 v 20 a 14,14 0 0 0 14,14 14,14 0 0 0 14,-14 V 68 C 230,38.363666 205.63633,14 176,14 Z"/>
@@ -22,6 +35,7 @@
       </g>
       <circle cx="672.12" cy="105.14" r="11.22" fill="#ff8b33"/>
     </svg>
+    </div>
   </div>
 
   <button
@@ -45,7 +59,10 @@
 </header>
 
 <div class="layout">
-  <aside class="sidebar">
+  @if (sidebarOpen()) {
+    <div class="sidebar-backdrop" (click)="closeSidebar()"></div>
+  }
+  <aside class="sidebar" [class.open]="sidebarOpen()">
     <nav class="side-nav">
       <button type="button" title="Dashboard" [class.active]="view() === 'dashboard'" (click)="setView('dashboard')">
         <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">

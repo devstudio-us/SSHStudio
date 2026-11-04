@@ -325,3 +325,49 @@
   color: #fff;
   border-color: var(--danger);
 }
+
+/* ---- Mobile / narrow ---- */
+@media (max-width: 760px) {
+  :host {
+    padding: 0.75rem;
+    overflow-y: auto; /* the whole two-pane stack scrolls as one column */
+  }
+
+  /* Stack local pane, transfer controls and remote pane vertically. */
+  .panes {
+    flex-direction: column;
+  }
+  .pane {
+    /* A usable height for each list when stacked; the page scrolls if needed. */
+    min-height: 240px;
+  }
+
+  /* Transfer buttons become a horizontal strip between the stacked panes. */
+  .xfer-mid {
+    width: auto;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem 0.6rem;
+  }
+  .xfer-mid .xfer {
+    flex: 1 1 130px;
+  }
+  .xfer-mid .dest {
+    flex-basis: 100%;
+  }
+  .xfer-mid .xfer-alt {
+    flex: 1 1 100%;
+  }
+}
+
+/* Very narrow: drop the modified-date column so the name has room. */
+@media (max-width: 520px) {
+  .file-row {
+    grid-template-columns: 20px 1fr auto;
+  }
+  .file-row .dt {
+    display: none;
+  }
+}
