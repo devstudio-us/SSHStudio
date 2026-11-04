@@ -44,6 +44,10 @@ export class SettingsComponent {
     if (this.update.autoCheck()) void this.update.maybeAutoCheck();
   }
 
+  toggleAutoInstall(): void {
+    this.update.setAutoInstall(!this.update.autoInstall());
+  }
+
   checkNow(): void {
     void this.update.check();
   }

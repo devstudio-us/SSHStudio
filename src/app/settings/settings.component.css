@@ -34,18 +34,44 @@
   padding: 1rem 1.15rem 1.1rem;
 }
 .card-head {
-  margin-bottom: 0.4rem;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 0.3rem;
 }
 .card-title {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.55rem;
+}
+/* Soft square chip behind the section icon. */
+.c-ico {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  flex-shrink: 0;
+  border-radius: 9px;
+  background: var(--accent-soft);
   color: var(--accent);
 }
 .card-title h2 {
   margin: 0;
   font-size: 0.95rem;
   color: var(--text);
+}
+/* "Up to date" pill on the Updates header. */
+.ok-pill {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: color-mix(in srgb, #22c55e 82%, var(--text));
+  background: color-mix(in srgb, #22c55e 15%, transparent);
+  padding: 0.15rem 0.55rem;
+  border-radius: 999px;
 }
 
 /* A labelled row with a control on the right. */
@@ -75,6 +101,18 @@
 .row-sub {
   font-size: 0.8rem;
   color: var(--text-muted);
+}
+/* "Not active yet" tag under the auto-install row. */
+.row-hint {
+  align-self: flex-start;
+  margin-top: 0.2rem;
+  font-size: 0.67rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--accent);
+  background: var(--accent-soft);
+  padding: 0.1rem 0.45rem;
+  border-radius: 999px;
 }
 
 /* ---- Toggle switch ---- */
@@ -137,6 +175,71 @@
 .btn.primary:hover:not(:disabled) {
   background-color: var(--accent-hover);
   color: var(--accent-contrast);
+}
+.btn.lg {
+  padding: 0.6rem 1.05rem;
+  font-size: 0.9rem;
+}
+
+/* Quiet text link (release notes). */
+.linkbtn {
+  padding: 0.2rem 0;
+  background: none;
+  border: none;
+  color: var(--accent);
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.linkbtn:hover {
+  text-decoration: underline;
+}
+
+/* ---- Update banner (top of the Updates card when one is available) ---- */
+.hero-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin: 0.3rem 0 0.2rem;
+  padding: 0.95rem 1rem;
+  border-radius: var(--radius);
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--accent) 22%, var(--surface)),
+    var(--surface)
+  );
+  border: 1px solid color-mix(in srgb, var(--accent) 38%, var(--border));
+}
+.hero-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-bottom: 0.5rem;
+  padding: 0.15rem 0.5rem;
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.07em;
+  color: var(--accent);
+  background: var(--accent-soft);
+  border-radius: 999px;
+}
+.hero-title {
+  font-size: 1.1rem;
+  font-weight: 750;
+}
+.hero-sub {
+  margin-top: 0.15rem;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+.hero-r {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.25rem;
 }
 
 /* ---- Segmented theme picker ---- */
@@ -289,6 +392,13 @@
   }
   .notice.avail {
     flex-direction: column;
+    align-items: stretch;
+  }
+  .hero-card {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .hero-r {
     align-items: stretch;
   }
 }

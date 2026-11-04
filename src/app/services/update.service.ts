@@ -8,6 +8,7 @@ const LATEST_API = `https://api.github.com/repos/${REPO}/releases/latest`;
 const RELEASES_PAGE = `https://github.com/${REPO}/releases/latest`;
 
 const ENABLED_KEY = "ssh-manager-auto-update";
+const AUTO_INSTALL_KEY = "ssh-manager-auto-install";
 const LAST_CHECK_KEY = "ssh-manager-update-last-check";
 /** How often the automatic check is allowed to actually call out. */
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -46,10 +47,18 @@ export interface UpdateStatus {
  */
 @Injectable({ providedIn: "root" })
 export class UpdateService {
+  /** Whether in-app silent install is possible. False until the app ships
+   * signed builds with the Tauri updater; the "Install automatically" toggle
+   * still saves the user's preference so it takes effect once this flips true. */
+  readonly installSupported = false;
+
   /** The running app version, loaded once from Tauri. */
   readonly version = signal<string>("");
-  /** Whether the weekly background check is enabled. */
+  /** Whether the daily background check is enabled. */
   readonly autoCheck = signal<boolean>(UpdateService.loadEnabled());
+  /** Whether the user wants updates installed automatically (preference only
+   * until installSupported is true). */
+  readonly autoInstall = signal<boolean>(UpdateService.loadAutoInstall());
   readonly status = signal<UpdateStatus>({ state: "idle" });
   /** Epoch ms of the last completed check, or null if never. */
   readonly lastChecked = signal<number | null>(UpdateService.loadLastCheck());
@@ -79,6 +88,18 @@ export class UpdateService {
     } catch {
       // localStorage may be unavailable; the choice still applies in-memory.
     }
+  }
+
+  setAutoInstall(on: boolean): void {
+    this.autoInstall.set(on);
+    try {
+      localStorage.setItem(AUTO_INSTALL_KEY, on ? "1" : "0");
+    } catch {
+      // ignore — preference still applies in-memory for this session.
+    }
+    // Installing requires checking, so turning auto-install on enables the
+    // daily check too (relevant once in-app install is supported).
+    if (on && !this.autoCheck()) this.setAutoCheck(true);
   }
 
   /** Run the automatic check: only if enabled and the last check was more than
@@ -163,10 +184,19 @@ export class UpdateService {
 
   private static loadEnabled(): boolean {
     try {
-      // Default ON: the weekly check is unobtrusive and opt-out.
+      // Default ON: the daily check is unobtrusive and opt-out.
       return localStorage.getItem(ENABLED_KEY) !== "0";
     } catch {
       return true;
+    }
+  }
+
+  private static loadAutoInstall(): boolean {
+    try {
+      // Default OFF: installing is opt-in.
+      return localStorage.getItem(AUTO_INSTALL_KEY) === "1";
+    } catch {
+      return false;
     }
   }
 
