@@ -195,6 +195,14 @@
   text-decoration: underline;
 }
 
+/* Small caption under the Backup actions. */
+.row-note {
+  margin: 0.6rem 0 0;
+  font-size: 0.78rem;
+  color: var(--text-faint);
+  line-height: 1.5;
+}
+
 /* ---- Update banner (top of the Updates card when one is available) ---- */
 .hero-card {
   display: flex;

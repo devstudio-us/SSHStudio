@@ -52,7 +52,7 @@ fn notes_path(app: &AppHandle) -> Result<PathBuf, String> {
 }
 
 /// Load all notes. A missing file is treated as an empty list (first run).
-fn load(app: &AppHandle) -> Result<Vec<Note>, String> {
+pub(crate) fn load(app: &AppHandle) -> Result<Vec<Note>, String> {
     let path = notes_path(app)?;
     if !path.exists() {
         return Ok(Vec::new());
@@ -65,7 +65,7 @@ fn load(app: &AppHandle) -> Result<Vec<Note>, String> {
 
 /// Persist the full list atomically: temp file -> fsync -> .bak -> rename.
 /// Same guarantee as the hosts store: never a half-written notes.toml.
-fn save(app: &AppHandle, notes: &[Note]) -> Result<(), String> {
+pub(crate) fn save(app: &AppHandle, notes: &[Note]) -> Result<(), String> {
     let path = notes_path(app)?;
     let file = NotesFile {
         notes: notes.to_vec(),

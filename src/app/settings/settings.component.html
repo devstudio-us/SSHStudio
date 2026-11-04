@@ -147,6 +147,75 @@
     }
   </section>
 
+  <!-- ===================== Backup ===================== -->
+  <section class="card">
+    <div class="card-head">
+      <div class="card-title">
+        <span class="c-ico">
+          <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="4" width="18" height="4" rx="1" /><path d="M5 8v11a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8M10 12h4" />
+          </svg>
+        </span>
+        <h2>Backup</h2>
+      </div>
+    </div>
+
+    <div class="row between">
+      <div class="row-text">
+        <span class="row-label">Include saved commands</span>
+        <span class="row-sub">Add your commands to the exported file too.</span>
+      </div>
+      <button
+        class="switch"
+        type="button"
+        role="switch"
+        [class.on]="includeCommands()"
+        [attr.aria-checked]="includeCommands()"
+        (click)="toggleIncludeCommands()"
+        aria-label="Include commands in export"
+      >
+        <span class="knob"></span>
+      </button>
+    </div>
+
+    <div class="row between">
+      <div class="row-text">
+        <span class="row-label">Export data</span>
+        <span class="row-sub">Save your hosts{{ includeCommands() ? " and commands" : "" }} to a file.</span>
+      </div>
+      <button class="btn" type="button" (click)="doExport()" [disabled]="backupBusy() !== ''">
+        @if (backupBusy() === "export") {
+          <span class="spinner"></span> Exporting…
+        } @else {
+          Export…
+        }
+      </button>
+    </div>
+
+    <div class="row between">
+      <div class="row-text">
+        <span class="row-label">Import data</span>
+        <span class="row-sub">Merge hosts and commands from a backup file.</span>
+      </div>
+      <button class="btn" type="button" (click)="doImport()" [disabled]="backupBusy() !== ''">
+        @if (backupBusy() === "import") {
+          <span class="spinner"></span> Importing…
+        } @else {
+          Import…
+        }
+      </button>
+    </div>
+
+    <p class="row-note">Passwords aren't included — they stay in your OS keychain. Private keys are referenced by path only.</p>
+
+    @if (backupMsg()) {
+      <p class="notice ok">{{ backupMsg() }}</p>
+    }
+    @if (backupErr()) {
+      <p class="notice err">{{ backupErr() }}</p>
+    }
+  </section>
+
   <!-- ===================== About ===================== -->
   <section class="card">
     <div class="card-head">

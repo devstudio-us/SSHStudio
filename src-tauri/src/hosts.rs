@@ -63,7 +63,7 @@ pub fn get_host(app: &AppHandle, id: &str) -> Result<Option<Host>, String> {
 }
 
 /// Load all hosts. A missing file is treated as an empty list (first run).
-fn load(app: &AppHandle) -> Result<Vec<Host>, String> {
+pub(crate) fn load(app: &AppHandle) -> Result<Vec<Host>, String> {
     let path = hosts_path(app)?;
     if !path.exists() {
         return Ok(Vec::new());
@@ -78,7 +78,7 @@ fn load(app: &AppHandle) -> Result<Vec<Host>, String> {
 /// directory, flush it to disk, back up the previous version, then rename the
 /// temp over the target. A crash can therefore never leave a half-written
 /// hosts.toml — either the old file or the complete new one is in place.
-fn save(app: &AppHandle, hosts: &[Host]) -> Result<(), String> {
+pub(crate) fn save(app: &AppHandle, hosts: &[Host]) -> Result<(), String> {
     let path = hosts_path(app)?;
     let file = HostsFile {
         hosts: hosts.to_vec(),

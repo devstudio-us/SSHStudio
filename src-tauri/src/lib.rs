@@ -1,3 +1,4 @@
+mod backup;
 mod hosts;
 mod metrics;
 mod notes;
@@ -56,6 +57,8 @@ pub fn run() {
             sftp::local_list,
             settings::get_settings,
             settings::set_download_dir,
+            backup::export_data,
+            backup::import_data,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
