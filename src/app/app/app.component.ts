@@ -196,9 +196,11 @@ export class AppComponent implements OnInit {
 
   async ngOnInit(): Promise<void> {
     await Promise.all([this.loadHosts(), this.loadNotes()]);
-    // Weekly "is there a newer release?" check (if enabled and due). Runs in the
-    // background; failures are swallowed so startup is never blocked by it.
+    // Daily "is there a newer release?" check (if enabled and due). Runs in the
+    // background; failures are swallowed so startup is never blocked by it. The
+    // timer keeps it going daily even if the window stays open for days.
     void this.update.maybeAutoCheck();
+    this.update.startAutoTimer();
   }
 
   async loadHosts(): Promise<void> {

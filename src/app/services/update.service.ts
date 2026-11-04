@@ -9,7 +9,11 @@ const RELEASES_PAGE = `https://github.com/${REPO}/releases/latest`;
 
 const ENABLED_KEY = "ssh-manager-auto-update";
 const LAST_CHECK_KEY = "ssh-manager-update-last-check";
-const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
+/** How often the automatic check is allowed to actually call out. */
+const DAY_MS = 24 * 60 * 60 * 1000;
+/** How often the running app re-evaluates whether a daily check is due (so a
+ * long-running window still checks ~daily, not only at startup). */
+const TIMER_MS = 6 * 60 * 60 * 1000;
 
 /** Where an update check currently stands. */
 export type UpdateState =
@@ -50,12 +54,22 @@ export class UpdateService {
   /** Epoch ms of the last completed check, or null if never. */
   readonly lastChecked = signal<number | null>(UpdateService.loadLastCheck());
 
+  private timer: ReturnType<typeof setInterval> | null = null;
+
   constructor() {
     // Resolve the current version up front (fails silently in a plain browser
     // where the Tauri API isn't present, e.g. `ng serve`).
     void getVersion()
       .then((v) => this.version.set(v))
       .catch(() => {});
+  }
+
+  /** Start a background timer that keeps the daily check running even if the
+   * app window is left open for days. Idempotent. maybeAutoCheck() itself
+   * throttles, so re-evaluating often is cheap. */
+  startAutoTimer(): void {
+    if (this.timer !== null) return;
+    this.timer = setInterval(() => void this.maybeAutoCheck(), TIMER_MS);
   }
 
   setAutoCheck(on: boolean): void {
@@ -67,12 +81,12 @@ export class UpdateService {
     }
   }
 
-  /** Run the weekly check at startup: only if enabled and the last check was
-   * more than a week ago (or never). */
+  /** Run the automatic check: only if enabled and the last check was more than
+   * a day ago (or never). */
   async maybeAutoCheck(): Promise<void> {
     if (!this.autoCheck()) return;
     const last = this.lastChecked();
-    if (last !== null && Date.now() - last < WEEK_MS) return;
+    if (last !== null && Date.now() - last < DAY_MS) return;
     await this.check();
   }
 

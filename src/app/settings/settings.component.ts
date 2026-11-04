@@ -40,6 +40,8 @@ export class SettingsComponent {
 
   toggleAuto(): void {
     this.update.setAutoCheck(!this.update.autoCheck());
+    // Turning it on should check right away if one is due.
+    if (this.update.autoCheck()) void this.update.maybeAutoCheck();
   }
 
   checkNow(): void {
