@@ -12,11 +12,16 @@ const RELEASES_PAGE = `https://github.com/${REPO}/releases/latest`;
 const ENABLED_KEY = "ssh-manager-auto-update";
 const AUTO_INSTALL_KEY = "ssh-manager-auto-install";
 const LAST_CHECK_KEY = "ssh-manager-update-last-check";
+// --- TESTING cadence (temporary) ---
+// Shortened so update checks happen often while testing the update flow.
+// Restore to DAY_MS = 24 * 60 * 60 * 1000 and TIMER_MS = 6 * 60 * 60 * 1000
+// once testing is done.
+const MINUTE_MS = 60 * 1000;
 /** How often the automatic check is allowed to actually call out. */
-const DAY_MS = 24 * 60 * 60 * 1000;
-/** How often the running app re-evaluates whether a daily check is due (so a
- * long-running window still checks ~daily, not only at startup). */
-const TIMER_MS = 6 * 60 * 60 * 1000;
+const DAY_MS = 15 * MINUTE_MS; // TESTING — was 24 * 60 * 60 * 1000
+/** How often the running app re-evaluates whether a check is due (so a
+ * long-running window still re-checks on this cadence, not only at startup). */
+const TIMER_MS = 15 * MINUTE_MS; // TESTING — was 6 * 60 * 60 * 1000
 
 /** Where an update check currently stands. */
 export type UpdateState =
