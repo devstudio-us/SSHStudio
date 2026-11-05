@@ -12,7 +12,9 @@
 .io-modal {
   width: 100%;
   max-width: 480px;
-  max-height: calc(100vh - 2rem);
+  /* A consistent, roomy height so Export and Import look the same (and Export
+     isn't cramped when there are only a few hosts). Shrinks on short screens. */
+  height: min(470px, calc(100vh - 2rem));
   display: flex;
   flex-direction: column;
   background-color: var(--surface);
@@ -86,8 +88,10 @@
 }
 
 .io-body {
+  flex: 1 1 auto;
+  min-height: 0;
   padding: 0.9rem 1rem;
-  overflow-y: auto;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
   gap: 0.6rem;
@@ -127,11 +131,12 @@
 .io-list {
   list-style: none;
   margin: 0;
-  padding: 0;
   display: flex;
   flex-direction: column;
   gap: 2px;
-  max-height: 46vh;
+  /* Grows to fill the modal's fixed height; scrolls when it has many rows. */
+  flex: 1 1 auto;
+  min-height: 0;
   overflow-y: auto;
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
@@ -186,14 +191,17 @@
   line-height: 1.5;
 }
 .io-empty {
-  margin: 0.5rem 0;
+  margin: auto 0;
   font-size: 0.88rem;
   color: var(--text-muted);
   text-align: center;
 }
 .io-pick {
+  flex: 1 1 auto;
+  min-height: 0;
   display: flex;
   flex-direction: column;
+  justify-content: center;
   gap: 0.85rem;
   padding: 0.25rem 0;
 }
