@@ -3,9 +3,11 @@
 //! An export contains the chosen hosts and, optionally, the saved commands
 //! (global ones plus those scoped to the chosen hosts). It deliberately carries
 //! **no secrets** — passwords live in the OS keychain and are never written
-//! here, and private keys are referenced by path only (same rule as the
-//! on-disk config, see CLAUDE.md). Importing is non-destructive: it merges the
-//! chosen hosts in, minting fresh ids and skipping entries that already exist.
+//! here, and key contents are never written (see CLAUDE.md). The private-key
+//! *path* is also stripped on export, since it's specific to the exporting
+//! machine and wouldn't be valid on the system importing the file. Importing is
+//! non-destructive: it merges the chosen hosts in, minting fresh ids and
+//! skipping entries that already exist.
 
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
@@ -54,6 +56,13 @@ pub fn export_data(
     let hosts: Vec<Host> = hosts::load(&app)?
         .into_iter()
         .filter(|h| sel.contains(h.id.as_str()))
+        .map(|mut h| {
+            // Drop the private-key path: it's specific to this machine and won't
+            // exist on the system importing the file. The user re-points it to
+            // their own key after import. (No secrets are exported either.)
+            h.identity_file = None;
+            h
+        })
         .collect();
 
     let notes: Vec<Note> = if include_notes {
