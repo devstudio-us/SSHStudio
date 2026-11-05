@@ -13,13 +13,15 @@ use tauri::Emitter;
 pub fn run() {
     let builder = tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
-        .plugin(tauri_plugin_dialog::init())
-        .plugin(tauri_plugin_process::init());
+        .plugin(tauri_plugin_dialog::init());
 
-    // The updater plugin exists on desktop only. Its config (endpoint + public
-    // key) lives in tauri.conf.json under `plugins.updater`.
+    // The process (relaunch) and updater plugins are desktop-only. The updater's
+    // config (endpoint + public key) lives in tauri.conf.json under
+    // `plugins.updater`.
     #[cfg(desktop)]
-    let builder = builder.plugin(tauri_plugin_updater::Builder::new().build());
+    let builder = builder
+        .plugin(tauri_plugin_process::init())
+        .plugin(tauri_plugin_updater::Builder::new().build());
 
     builder
         // macOS always shows a native menu bar; by default its first menu has
