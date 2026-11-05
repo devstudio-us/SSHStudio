@@ -208,6 +208,9 @@ export class AppComponent implements OnInit {
     // timer keeps it going daily even if the window stays open for days.
     void this.update.maybeAutoCheck();
     this.update.startAutoTimer();
+    // Desktop webviews throttle background timers, so also check when the window
+    // regains focus/visibility (cadence-gated, so it won't spam).
+    this.update.startFocusChecks();
     // macOS menu "About SSHStudio" → open the same in-app modal. No-op outside
     // Tauri (e.g. `ng serve`).
     void listen("open-about", () => this.aboutService.show()).catch(() => {});

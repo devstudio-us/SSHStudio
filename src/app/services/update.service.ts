@@ -76,6 +76,11 @@ export class UpdateService {
   /** The pending updater handle to install, when one is available. */
   private pendingUpdate: Update | null = null;
   private timer: ReturnType<typeof setInterval> | null = null;
+  /** Guards against overlapping checks (e.g. focus + visibility firing together,
+   * or a manual check while an automatic one is mid-flight). */
+  private checking = false;
+  /** Ensures the focus/visibility listeners are only wired once. */
+  private focusWired = false;
 
   constructor() {
     // Resolve the current version up front (fails silently in a plain browser
@@ -89,6 +94,23 @@ export class UpdateService {
   startAutoTimer(): void {
     if (this.timer !== null) return;
     this.timer = setInterval(() => void this.maybeAutoCheck(), TIMER_MS);
+  }
+
+  /** Also check whenever the window regains focus or becomes visible.
+   *
+   * Desktop webviews (WebView2 / WebKit) throttle or suspend background timers
+   * when the window is minimized or unfocused, so the interval alone can miss a
+   * release until the window is next focused. Re-checking on focus/visibility
+   * closes that gap; `maybeAutoCheck` still enforces the cadence, so returning
+   * to the app repeatedly won't spam the server. Call once (idempotent). */
+  startFocusChecks(): void {
+    if (this.focusWired) return;
+    this.focusWired = true;
+    const onActive = (): void => {
+      if (document.visibilityState === "visible") void this.maybeAutoCheck();
+    };
+    document.addEventListener("visibilitychange", onActive);
+    window.addEventListener("focus", onActive);
   }
 
   setAutoCheck(on: boolean): void {
@@ -124,6 +146,10 @@ export class UpdateService {
   /** Check for a newer release. Prefers the signed updater; falls back to the
    * GitHub API so the user is still notified when the updater can't run. */
   async check(): Promise<void> {
+    // Skip if a check is already running (focus + visibility can fire together,
+    // or a manual check may overlap an automatic one).
+    if (this.checking) return;
+    this.checking = true;
     this.status.set({ state: "checking" });
     const current = this.version() || (await getVersion().catch(() => ""));
     if (current) this.version.set(current);
@@ -155,6 +181,8 @@ export class UpdateService {
       if (!ok) {
         this.status.set({ state: "error", current, error: String(e) });
       }
+    } finally {
+      this.checking = false;
     }
   }
 
