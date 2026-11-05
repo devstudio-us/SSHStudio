@@ -2,6 +2,7 @@ import { Component, inject } from "@angular/core";
 import { ThemeService, ThemeMode } from "../services/theme.service";
 import { UpdateService } from "../services/update.service";
 import { ImportExportService } from "../services/import-export.service";
+import { AboutService } from "../services/about.service";
 
 /**
  * Settings page (opened from the bottom of the sidebar). Sections: Theme,
@@ -16,6 +17,7 @@ import { ImportExportService } from "../services/import-export.service";
 export class SettingsComponent {
   private readonly themeService = inject(ThemeService);
   private readonly io = inject(ImportExportService);
+  private readonly aboutService = inject(AboutService);
   readonly update = inject(UpdateService);
 
   /** Current theme mode (drives the picker's active state). */
@@ -26,14 +28,6 @@ export class SettingsComponent {
     { value: "light", label: "Light" },
     { value: "dark", label: "Dark" },
   ];
-
-  /** Project links for the About section. */
-  readonly links = {
-    repo: "https://github.com/devstudio-us/SSHStudio",
-    releases: "https://github.com/devstudio-us/SSHStudio/releases",
-    issues: "https://github.com/devstudio-us/SSHStudio/issues",
-    license: "https://github.com/devstudio-us/SSHStudio/blob/main/LICENSE",
-  };
 
   setMode(mode: ThemeMode): void {
     this.themeService.setMode(mode);
@@ -63,16 +57,16 @@ export class SettingsComponent {
     void this.update.openDownloadPage();
   }
 
-  open(url: string): void {
-    void this.update.openExternal(url);
-  }
-
   openExport(): void {
     this.io.open("export");
   }
 
   openImport(): void {
     this.io.open("import");
+  }
+
+  openAbout(): void {
+    this.aboutService.show();
   }
 
   /** Human-friendly "last checked" label. */

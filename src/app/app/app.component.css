@@ -51,6 +51,16 @@
   align-items: center;
   gap: 0.5rem;
   min-width: 0;
+  padding: 0.2rem 0.3rem;
+  margin: -0.2rem -0.3rem;
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-sm);
+  color: inherit;
+  cursor: pointer;
+}
+.brand:hover {
+  background-color: var(--surface-hover);
 }
 
 /* SSHStudio logo: orange symbol + theme-colored wordmark (dot stays orange). */

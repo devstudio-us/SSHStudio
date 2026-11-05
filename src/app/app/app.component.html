@@ -12,7 +12,7 @@
         <path d="M3 6h18M3 12h18M3 18h18" />
       </svg>
     </button>
-    <div class="brand">
+    <button class="brand" type="button" (click)="openAbout()" title="About SSHStudio">
     <svg class="brand-symbol" viewBox="0 0 256 256" role="img" aria-label="SSHStudio">
       <g fill="#ff8b33">
         <path d="M 44,14 A 14.0014,14.0014 0 0 0 30,28 v 84 a 14,14 0 0 0 14,14 14,14 0 0 0 14,-14 V 42 h 118 c 14.36362,0 26,11.636378 26,26 v 20 a 14,14 0 0 0 14,14 14,14 0 0 0 14,-14 V 68 C 230,38.363666 205.63633,14 176,14 Z"/>
@@ -35,7 +35,7 @@
       </g>
       <circle cx="672.12" cy="105.14" r="11.22" fill="#ff8b33"/>
     </svg>
-    </div>
+    </button>
   </div>
 
   <button
@@ -307,6 +307,9 @@
 
 <!-- Import / export dialog (opened from the Dashboard or Settings). -->
 <app-import-export />
+
+<!-- About dialog (opened from the topbar logo, Settings, or the macOS menu). -->
+<app-about-modal />
 
 <!-- Add / edit host modal -->
 @if (showHostForm()) {

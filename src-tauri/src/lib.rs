@@ -7,6 +7,8 @@ mod settings;
 mod sftp;
 mod ssh;
 
+use tauri::Emitter;
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let builder = tauri::Builder::default()
@@ -20,6 +22,51 @@ pub fn run() {
     let builder = builder.plugin(tauri_plugin_updater::Builder::new().build());
 
     builder
+        // macOS always shows a native menu bar; by default its first menu has
+        // an "About" item that opens the OS About panel. Replace it with a
+        // custom item so it opens OUR About modal instead — keeping About
+        // identical across macOS, Windows and Linux. (Windows/Linux have no
+        // menu bar; they open the same modal from the topbar logo / Settings.)
+        .setup(|_app| {
+            #[cfg(target_os = "macos")]
+            {
+                use tauri::menu::{MenuBuilder, MenuItemBuilder, SubmenuBuilder};
+                let handle = _app.handle().clone();
+                let about = MenuItemBuilder::with_id("about", "About SSHStudio").build(&handle)?;
+                let app_menu = SubmenuBuilder::new(&handle, "SSHStudio")
+                    .item(&about)
+                    .separator()
+                    .services()
+                    .separator()
+                    .hide()
+                    .hide_others()
+                    .show_all()
+                    .separator()
+                    .quit()
+                    .build()?;
+                // Keep the standard Edit menu so Cmd+C/V/Z etc. still work.
+                let edit_menu = SubmenuBuilder::new(&handle, "Edit")
+                    .undo()
+                    .redo()
+                    .separator()
+                    .cut()
+                    .copy()
+                    .paste()
+                    .select_all()
+                    .build()?;
+                let menu = MenuBuilder::new(&handle)
+                    .items(&[&app_menu, &edit_menu])
+                    .build()?;
+                handle.set_menu(menu)?;
+            }
+            Ok(())
+        })
+        // The macOS "About" menu item asks the frontend to open the modal.
+        .on_menu_event(|app, event| {
+            if event.id().as_ref() == "about" {
+                let _ = app.emit("open-about", ());
+            }
+        })
         .manage(ssh::SessionManager::new())
         .manage(metrics::MetricsManager::new())
         .manage(sftp::SftpManager::new())

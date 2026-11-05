@@ -19,6 +19,9 @@ import { SftpBrowserComponent } from "../sftp-browser/sftp-browser.component";
 import { SelectComponent, SelectOption } from "../select/select.component";
 import { SettingsComponent } from "../settings/settings.component";
 import { ImportExportComponent } from "../import-export/import-export.component";
+import { AboutModalComponent } from "../about-modal/about-modal.component";
+import { AboutService } from "../services/about.service";
+import { listen } from "@tauri-apps/api/event";
 import { AutofocusDirective } from "../directives/autofocus.directive";
 import { NotesService } from "../services/notes.service";
 import { SftpService } from "../services/sftp.service";
@@ -92,6 +95,7 @@ interface ConfirmState {
     SelectComponent,
     SettingsComponent,
     ImportExportComponent,
+    AboutModalComponent,
     AutofocusDirective,
   ],
   templateUrl: "./app.component.html",
@@ -105,6 +109,7 @@ export class AppComponent implements OnInit {
   private readonly sftp = inject(SftpService);
   private readonly secrets = inject(SecretsService);
   private readonly update = inject(UpdateService);
+  private readonly aboutService = inject(AboutService);
   private readonly cdr = inject(ChangeDetectorRef);
 
   readonly hosts = this.hostsService.hosts;
@@ -203,6 +208,14 @@ export class AppComponent implements OnInit {
     // timer keeps it going daily even if the window stays open for days.
     void this.update.maybeAutoCheck();
     this.update.startAutoTimer();
+    // macOS menu "About SSHStudio" → open the same in-app modal. No-op outside
+    // Tauri (e.g. `ng serve`).
+    void listen("open-about", () => this.aboutService.show()).catch(() => {});
+  }
+
+  /** Open the shared About modal (topbar logo). */
+  openAbout(): void {
+    this.aboutService.show();
   }
 
   async loadHosts(): Promise<void> {
