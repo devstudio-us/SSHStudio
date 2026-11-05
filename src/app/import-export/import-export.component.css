@@ -11,7 +11,7 @@
 }
 .io-modal {
   width: 100%;
-  max-width: 480px;
+  max-width: 540px;
   /* A consistent, roomy height so Export and Import look the same (and Export
      isn't cramped when there are only a few hosts). Shrinks on short screens. */
   height: min(470px, calc(100vh - 2rem));
