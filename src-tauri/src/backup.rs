@@ -1,14 +1,14 @@
 //! Import / export of the user's data as a single JSON file.
 //!
-//! An export always contains the hosts and, optionally, the saved commands
-//! (notes). It deliberately carries **no secrets** — passwords live in the OS
-//! keychain and are never written here, and private keys are referenced by
-//! path only (same rule as the on-disk config, see CLAUDE.md). Importing is
-//! non-destructive: it merges into the existing data, minting fresh ids and
-//! skipping entries that already exist.
+//! An export contains the chosen hosts and, optionally, the saved commands
+//! (global ones plus those scoped to the chosen hosts). It deliberately carries
+//! **no secrets** — passwords live in the OS keychain and are never written
+//! here, and private keys are referenced by path only (same rule as the
+//! on-disk config, see CLAUDE.md). Importing is non-destructive: it merges the
+//! chosen hosts in, minting fresh ids and skipping entries that already exist.
 
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use tauri::AppHandle;
 
 use crate::hosts::{self, Host};
@@ -19,7 +19,7 @@ const VERSION: u32 = 1;
 
 /// On-disk shape of an export file.
 #[derive(Serialize, Deserialize)]
-struct Backup {
+pub struct Backup {
     /// Marker so import can reject unrelated JSON files.
     format: String,
     version: u32,
@@ -41,15 +41,30 @@ pub struct ImportSummary {
     pub notes_skipped: usize,
 }
 
-/// Write all hosts (and optionally commands) to `path` as JSON.
+/// Write the chosen hosts (and optionally their + global commands) to `path`.
 #[tauri::command]
-pub fn export_data(app: AppHandle, path: String, include_notes: bool) -> Result<(), String> {
-    let hosts = hosts::load(&app)?;
-    let notes = if include_notes {
+pub fn export_data(
+    app: AppHandle,
+    path: String,
+    host_ids: Vec<String>,
+    include_notes: bool,
+) -> Result<(), String> {
+    let sel: HashSet<&str> = host_ids.iter().map(|s| s.as_str()).collect();
+
+    let hosts: Vec<Host> = hosts::load(&app)?
+        .into_iter()
+        .filter(|h| sel.contains(h.id.as_str()))
+        .collect();
+
+    let notes: Vec<Note> = if include_notes {
         notes::load(&app)?
+            .into_iter()
+            .filter(|n| note_in_scope(n, &sel))
+            .collect()
     } else {
         Vec::new()
     };
+
     let backup = Backup {
         format: FORMAT.to_string(),
         version: VERSION,
@@ -57,21 +72,31 @@ pub fn export_data(app: AppHandle, path: String, include_notes: bool) -> Result<
         hosts,
         notes,
     };
-    let json = serde_json::to_string_pretty(&backup).map_err(|e| format!("could not serialize: {e}"))?;
+    let json =
+        serde_json::to_string_pretty(&backup).map_err(|e| format!("could not serialize: {e}"))?;
     std::fs::write(&path, json).map_err(|e| format!("could not write {path}: {e}"))
 }
 
-/// Merge an export file into the current data. Non-destructive: existing
-/// entries are kept, imported ones get new ids, and duplicates are skipped.
-/// Host-scoped commands are re-linked to the right host via an id remap.
+/// Parse a backup file and return it, so the UI can show its hosts/commands for
+/// the user to pick which to import. Rejects files that aren't SSHStudio backups.
 #[tauri::command]
-pub fn import_data(app: AppHandle, path: String) -> Result<ImportSummary, String> {
-    let text = std::fs::read_to_string(&path).map_err(|e| format!("could not read {path}: {e}"))?;
-    let backup: Backup = serde_json::from_str(&text)
-        .map_err(|e| format!("not a valid SSHStudio backup file: {e}"))?;
-    if backup.format != FORMAT {
-        return Err("this file is not an SSHStudio backup".to_string());
-    }
+pub fn read_backup(path: String) -> Result<Backup, String> {
+    let backup = parse(&path)?;
+    Ok(backup)
+}
+
+/// Merge the chosen hosts from an export file into the current data.
+/// Non-destructive: existing entries are kept, imported ones get new ids, and
+/// duplicates are skipped. Host-scoped commands are re-linked via an id remap.
+#[tauri::command]
+pub fn import_data(
+    app: AppHandle,
+    path: String,
+    host_ids: Vec<String>,
+    include_notes: bool,
+) -> Result<ImportSummary, String> {
+    let backup = parse(&path)?;
+    let sel: HashSet<&str> = host_ids.iter().map(|s| s.as_str()).collect();
 
     let mut hosts = hosts::load(&app)?;
     let mut summary = ImportSummary {
@@ -87,6 +112,9 @@ pub fn import_data(app: AppHandle, path: String) -> Result<ImportSummary, String
     let mut id_map: HashMap<String, String> = HashMap::new();
 
     for mut incoming in backup.hosts {
+        if !sel.contains(incoming.id.as_str()) {
+            continue; // host not chosen for import
+        }
         let old_id = incoming.id.clone();
         if let Some(existing) = hosts.iter().find(|h| same_host(h, &incoming)) {
             id_map.insert(old_id, existing.id.clone());
@@ -106,13 +134,15 @@ pub fn import_data(app: AppHandle, path: String) -> Result<ImportSummary, String
         hosts::save(&app, &hosts)?;
     }
 
-    // Commands (only present when the export included them).
-    if !backup.notes.is_empty() {
+    // Commands: global ones, plus those scoped to a chosen host.
+    if include_notes && !backup.notes.is_empty() {
         let mut notes = notes::load(&app)?;
         for mut incoming in backup.notes {
+            if !note_in_scope(&incoming, &sel) {
+                continue;
+            }
             // Re-point a host-scoped command at its host's id here. If that host
-            // wasn't imported/matched, fall back to a global command rather than
-            // leaving it orphaned.
+            // wasn't imported/matched, fall back to a global command.
             incoming.host_id = match incoming.host_id {
                 Some(hid) => id_map.get(&hid).cloned(),
                 None => None,
@@ -131,6 +161,26 @@ pub fn import_data(app: AppHandle, path: String) -> Result<ImportSummary, String
     }
 
     Ok(summary)
+}
+
+/// Read + parse + validate a backup file.
+fn parse(path: &str) -> Result<Backup, String> {
+    let text = std::fs::read_to_string(path).map_err(|e| format!("could not read {path}: {e}"))?;
+    let backup: Backup = serde_json::from_str(&text)
+        .map_err(|e| format!("not a valid SSHStudio backup file: {e}"))?;
+    if backup.format != FORMAT {
+        return Err("this file is not an SSHStudio backup".to_string());
+    }
+    Ok(backup)
+}
+
+/// A command is "in scope" for a selection if it is global or scoped to one of
+/// the selected host ids.
+fn note_in_scope(n: &Note, sel: &HashSet<&str>) -> bool {
+    match &n.host_id {
+        None => true,
+        Some(h) => sel.contains(h.as_str()),
+    }
 }
 
 /// Two hosts are "the same" connection if user@hostname:port matches

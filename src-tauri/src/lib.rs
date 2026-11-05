@@ -58,6 +58,7 @@ pub fn run() {
             settings::get_settings,
             settings::set_download_dir,
             backup::export_data,
+            backup::read_backup,
             backup::import_data,
         ])
         .run(tauri::generate_context!())

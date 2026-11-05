@@ -18,6 +18,7 @@ import { NotePanelComponent } from "../note-panel/note-panel.component";
 import { SftpBrowserComponent } from "../sftp-browser/sftp-browser.component";
 import { SelectComponent, SelectOption } from "../select/select.component";
 import { SettingsComponent } from "../settings/settings.component";
+import { ImportExportComponent } from "../import-export/import-export.component";
 import { AutofocusDirective } from "../directives/autofocus.directive";
 import { NotesService } from "../services/notes.service";
 import { SftpService } from "../services/sftp.service";
@@ -90,6 +91,7 @@ interface ConfirmState {
     SftpBrowserComponent,
     SelectComponent,
     SettingsComponent,
+    ImportExportComponent,
     AutofocusDirective,
   ],
   templateUrl: "./app.component.html",

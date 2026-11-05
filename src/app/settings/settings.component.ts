@@ -1,12 +1,11 @@
-import { Component, inject, signal } from "@angular/core";
+import { Component, inject } from "@angular/core";
 import { ThemeService, ThemeMode } from "../services/theme.service";
 import { UpdateService } from "../services/update.service";
-import { BackupService } from "../services/backup.service";
+import { ImportExportService } from "../services/import-export.service";
 
 /**
- * Settings page (opened from the bottom of the sidebar). Three sections:
- * Auto-update (weekly check + manual check, opens the download page), Theme
- * (Light / Dark / System), and About (version + project links). All state
+ * Settings page (opened from the bottom of the sidebar). Sections: Theme,
+ * Updates, Backup (opens the shared import/export dialog) and About. State
  * lives in the ThemeService / UpdateService singletons.
  */
 @Component({
@@ -16,19 +15,11 @@ import { BackupService } from "../services/backup.service";
 })
 export class SettingsComponent {
   private readonly themeService = inject(ThemeService);
-  private readonly backup = inject(BackupService);
+  private readonly io = inject(ImportExportService);
   readonly update = inject(UpdateService);
 
   /** Current theme mode (drives the picker's active state). */
   readonly mode = this.themeService.mode;
-
-  // --- Backup (import / export) ---
-  /** Whether an export should include saved commands. */
-  readonly includeCommands = signal(true);
-  /** "" | "export" | "import" while an operation is in flight. */
-  readonly backupBusy = signal<"" | "export" | "import">("");
-  readonly backupMsg = signal("");
-  readonly backupErr = signal("");
 
   readonly themeOptions: { value: ThemeMode; label: string }[] = [
     { value: "system", label: "System" },
@@ -76,53 +67,12 @@ export class SettingsComponent {
     void this.update.openExternal(url);
   }
 
-  toggleIncludeCommands(): void {
-    this.includeCommands.update((v) => !v);
+  openExport(): void {
+    this.io.open("export");
   }
 
-  async doExport(): Promise<void> {
-    this.backupErr.set("");
-    this.backupMsg.set("");
-    this.backupBusy.set("export");
-    try {
-      const ok = await this.backup.export(this.includeCommands());
-      if (ok) {
-        this.backupMsg.set(
-          this.includeCommands()
-            ? "Exported your hosts and commands."
-            : "Exported your hosts.",
-        );
-      }
-    } catch (e) {
-      this.backupErr.set(String(e));
-    } finally {
-      this.backupBusy.set("");
-    }
-  }
-
-  async doImport(): Promise<void> {
-    this.backupErr.set("");
-    this.backupMsg.set("");
-    this.backupBusy.set("import");
-    try {
-      const s = await this.backup.import();
-      if (s) {
-        const parts = [`${s.hosts_added} ${s.hosts_added === 1 ? "host" : "hosts"}`];
-        if (s.notes_added > 0 || s.notes_skipped > 0) {
-          parts.push(`${s.notes_added} ${s.notes_added === 1 ? "command" : "commands"}`);
-        }
-        let msg = `Imported ${parts.join(" and ")}.`;
-        const skipped = s.hosts_skipped + s.notes_skipped;
-        if (skipped > 0) {
-          msg += ` Skipped ${skipped} already present.`;
-        }
-        this.backupMsg.set(msg);
-      }
-    } catch (e) {
-      this.backupErr.set(String(e));
-    } finally {
-      this.backupBusy.set("");
-    }
+  openImport(): void {
+    this.io.open("import");
   }
 
   /** Human-friendly "last checked" label. */

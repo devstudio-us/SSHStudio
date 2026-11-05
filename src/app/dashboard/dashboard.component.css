@@ -70,6 +70,21 @@
 .add-host:hover {
   background-color: var(--accent-hover);
 }
+/* Secondary action: opens the import/export dialog. */
+.io-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.5rem 0.85rem;
+  font-weight: 600;
+  background-color: var(--surface-2);
+  color: var(--text);
+  border: 1px solid var(--border);
+}
+.io-trigger:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
 .no-match {
   color: var(--text-faint);
   font-size: 0.9rem;

@@ -1,0 +1,111 @@
+@if (mode()) {
+  <div class="io-overlay" (click)="close()">
+    <div class="io-modal" (click)="$event.stopPropagation()">
+      <div class="io-head">
+        <div class="io-tabs" role="tablist">
+          <button type="button" role="tab" [class.on]="tab() === 'export'" (click)="switchTab('export')">Export</button>
+          <button type="button" role="tab" [class.on]="tab() === 'import'" (click)="switchTab('import')">Import</button>
+        </div>
+        <button class="io-x" type="button" (click)="close()" aria-label="Close">×</button>
+      </div>
+
+      <!-- ======================= EXPORT ======================= -->
+      @if (tab() === "export") {
+        <div class="io-body">
+          @if (hosts().length === 0) {
+            <p class="io-empty">No hosts to export yet. Add a host first.</p>
+          } @else {
+            <div class="io-selbar">
+              <label class="chk">
+                <input type="checkbox" [checked]="allExportSelected()" (change)="toggleAllExport()" />
+                <span>Select all</span>
+              </label>
+              <span class="io-count">{{ exportCount() }} of {{ hosts().length }} selected</span>
+            </div>
+            <ul class="io-list">
+              @for (h of hosts(); track h.id) {
+                <li class="io-row" [class.sel]="isExportSelected(h.id)" (click)="toggleExport(h.id)">
+                  <input type="checkbox" [checked]="isExportSelected(h.id)" (click)="$event.stopPropagation()" (change)="toggleExport(h.id)" />
+                  <div class="io-rowtext">
+                    <span class="io-name">{{ hostLabel(h) }}</span>
+                    <span class="io-addr">{{ hostAddr(h) }}</span>
+                  </div>
+                </li>
+              }
+            </ul>
+            <label class="chk inc">
+              <input type="checkbox" [checked]="includeCommandsExport()" (change)="includeCommandsExport.set(!includeCommandsExport())" />
+              <span>Include saved commands</span>
+            </label>
+            <p class="io-note">Passwords aren't included — they stay in your OS keychain. Private keys are referenced by path only.</p>
+          }
+        </div>
+        <div class="io-foot">
+          @if (msg()) { <span class="io-msg ok">{{ msg() }}</span> }
+          @if (err()) { <span class="io-msg err">{{ err() }}</span> }
+          <span class="io-spacer"></span>
+          <button class="io-btn" type="button" (click)="close()">Close</button>
+          <button class="io-btn primary" type="button" [disabled]="exportCount() === 0 || busy()" (click)="doExport()">
+            @if (busy()) { Exporting… } @else { Export {{ exportCount() }} }
+          </button>
+        </div>
+      }
+
+      <!-- ======================= IMPORT ======================= -->
+      @if (tab() === "import") {
+        <div class="io-body">
+          @if (importStep() === "pick") {
+            <div class="io-pick">
+              <p>Choose a backup file, then pick which hosts to merge in.</p>
+              <button class="io-btn primary" type="button" [disabled]="busy()" (click)="pickFile()">
+                @if (busy()) { Reading… } @else { Choose file… }
+              </button>
+              @if (msg()) { <p class="io-msg ok">{{ msg() }}</p> }
+              @if (err()) { <p class="io-msg err">{{ err() }}</p> }
+            </div>
+          } @else {
+            @if (importHosts().length === 0) {
+              <p class="io-empty">This backup file has no hosts.</p>
+            } @else {
+              <div class="io-selbar">
+                <label class="chk">
+                  <input type="checkbox" [checked]="allImportSelected()" (change)="toggleAllImport()" />
+                  <span>Select all</span>
+                </label>
+                <span class="io-count">{{ importCount() }} of {{ importHosts().length }} selected</span>
+              </div>
+              <ul class="io-list">
+                @for (h of importHosts(); track h.id) {
+                  <li class="io-row" [class.sel]="isImportSelected(h.id)" (click)="toggleImport(h.id)">
+                    <input type="checkbox" [checked]="isImportSelected(h.id)" (click)="$event.stopPropagation()" (change)="toggleImport(h.id)" />
+                    <div class="io-rowtext">
+                      <span class="io-name">{{ hostLabel(h) }}</span>
+                      <span class="io-addr">{{ hostAddr(h) }}</span>
+                    </div>
+                  </li>
+                }
+              </ul>
+              @if (importNotesCount() > 0) {
+                <label class="chk inc">
+                  <input type="checkbox" [checked]="includeCommandsImport()" (change)="includeCommandsImport.set(!includeCommandsImport())" />
+                  <span>Also import commands ({{ importNotesCount() }} in file)</span>
+                </label>
+              }
+              <p class="io-note">Existing hosts are kept; exact duplicates are skipped.</p>
+            }
+          }
+        </div>
+        <div class="io-foot">
+          @if (err() && importStep() === "choose") { <span class="io-msg err">{{ err() }}</span> }
+          <span class="io-spacer"></span>
+          <button class="io-btn" type="button" (click)="close()">Close</button>
+          @if (importStep() === "choose") {
+            <button class="io-btn primary" type="button" [disabled]="importCount() === 0 || busy()" (click)="doImport()">
+              @if (busy()) { Importing… } @else { Import {{ importCount() }} }
+            </button>
+          }
+        </div>
+      }
+    </div>
+  </div>
+}

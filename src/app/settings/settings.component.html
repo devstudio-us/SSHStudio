@@ -162,58 +162,21 @@
 
     <div class="row between">
       <div class="row-text">
-        <span class="row-label">Include saved commands</span>
-        <span class="row-sub">Add your commands to the exported file too.</span>
-      </div>
-      <button
-        class="switch"
-        type="button"
-        role="switch"
-        [class.on]="includeCommands()"
-        [attr.aria-checked]="includeCommands()"
-        (click)="toggleIncludeCommands()"
-        aria-label="Include commands in export"
-      >
-        <span class="knob"></span>
-      </button>
-    </div>
-
-    <div class="row between">
-      <div class="row-text">
         <span class="row-label">Export data</span>
-        <span class="row-sub">Save your hosts{{ includeCommands() ? " and commands" : "" }} to a file.</span>
+        <span class="row-sub">Choose which hosts to save to a file (with or without commands).</span>
       </div>
-      <button class="btn" type="button" (click)="doExport()" [disabled]="backupBusy() !== ''">
-        @if (backupBusy() === "export") {
-          <span class="spinner"></span> Exporting…
-        } @else {
-          Export…
-        }
-      </button>
+      <button class="btn" type="button" (click)="openExport()">Export…</button>
     </div>
 
     <div class="row between">
       <div class="row-text">
         <span class="row-label">Import data</span>
-        <span class="row-sub">Merge hosts and commands from a backup file.</span>
+        <span class="row-sub">Pick a backup file, then choose which hosts to merge in.</span>
       </div>
-      <button class="btn" type="button" (click)="doImport()" [disabled]="backupBusy() !== ''">
-        @if (backupBusy() === "import") {
-          <span class="spinner"></span> Importing…
-        } @else {
-          Import…
-        }
-      </button>
+      <button class="btn" type="button" (click)="openImport()">Import…</button>
     </div>
 
     <p class="row-note">Passwords aren't included — they stay in your OS keychain. Private keys are referenced by path only.</p>
-
-    @if (backupMsg()) {
-      <p class="notice ok">{{ backupMsg() }}</p>
-    }
-    @if (backupErr()) {
-      <p class="notice err">{{ backupErr() }}</p>
-    }
   </section>
 
   <!-- ===================== About ===================== -->

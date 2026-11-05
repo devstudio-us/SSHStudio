@@ -2,6 +2,7 @@ import {
   Component,
   ElementRef,
   computed,
+  inject,
   input,
   output,
   signal,
@@ -9,6 +10,7 @@ import {
 } from "@angular/core";
 import { MetricsCardComponent } from "../metrics-card/metrics-card.component";
 import { Host } from "../models/host.model";
+import { ImportExportService } from "../services/import-export.service";
 
 /** Dashboard of metrics cards for every host, with a header toolbar
  * (live indicator, search, add host). Cards for un-connected hosts show an
@@ -36,8 +38,14 @@ export class DashboardComponent {
   readonly edit = output<Host>();
   readonly remove = output<Host>();
 
+  private readonly io = inject(ImportExportService);
+
   readonly query = signal("");
   readonly searchOpen = signal(false);
+
+  openImportExport(): void {
+    this.io.open("export");
+  }
   private readonly searchRef =
     viewChild<ElementRef<HTMLInputElement>>("searchRef");
 
