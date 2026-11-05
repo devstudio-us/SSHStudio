@@ -143,6 +143,20 @@ export class UpdateService {
     await this.check();
   }
 
+  /** Check once at startup, ignoring the 15-min cadence gate.
+   *
+   * The "update available" banner lives only in the in-memory `status` signal,
+   * so it's gone after a restart. If we used the gated `maybeAutoCheck` here, a
+   * reopen within 15 min of the last check would skip the check and the banner
+   * for a still-pending update wouldn't come back. Opening the app is a
+   * deliberate action, so we always re-check on launch — this re-surfaces the
+   * update and re-obtains a fresh install handle. Respects the enabled toggle;
+   * failures are swallowed by `check`. */
+  async checkOnLaunch(): Promise<void> {
+    if (!this.autoCheck()) return;
+    await this.check();
+  }
+
   /** Check for a newer release. Prefers the signed updater; falls back to the
    * GitHub API so the user is still notified when the updater can't run. */
   async check(): Promise<void> {

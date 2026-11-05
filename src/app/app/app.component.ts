@@ -206,7 +206,9 @@ export class AppComponent implements OnInit {
     // Daily "is there a newer release?" check (if enabled and due). Runs in the
     // background; failures are swallowed so startup is never blocked by it. The
     // timer keeps it going daily even if the window stays open for days.
-    void this.update.maybeAutoCheck();
+    // Always check on launch (ignores the cadence gate) so a still-pending
+    // update's banner reappears every time the app is opened.
+    void this.update.checkOnLaunch();
     this.update.startAutoTimer();
     // Desktop webviews throttle background timers, so also check when the window
     // regains focus/visibility (cadence-gated, so it won't spam).

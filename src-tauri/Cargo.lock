@@ -4550,7 +4550,7 @@ dependencies = [
 
 [[package]]
 name = "sshstudio"
-version = "0.3.5"
+version = "0.3.6"
 dependencies = [
  "keyring",
  "russh",
