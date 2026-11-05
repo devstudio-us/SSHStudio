@@ -6,9 +6,10 @@ import {
   signal,
   untracked,
 } from "@angular/core";
+import { getCurrentWebview } from "@tauri-apps/api/webview";
 import { HostsService } from "../services/hosts.service";
 import { ImportExportService } from "../services/import-export.service";
-import { BackupService } from "../services/backup.service";
+import { BackupService, BackupFile } from "../services/backup.service";
 import { Host } from "../models/host.model";
 
 /**
@@ -46,6 +47,8 @@ export class ImportExportComponent {
   readonly busy = signal(false);
   readonly msg = signal("");
   readonly err = signal("");
+  /** A backup file is being dragged over the window (import pick step). */
+  readonly dragOver = signal(false);
 
   constructor() {
     // When the dialog opens, sync the tab and reset that tab's state.
@@ -55,6 +58,42 @@ export class ImportExportComponent {
       this.tab.set(m);
       this.resetState(m);
     });
+    void this.listenForFileDrops();
+  }
+
+  /** Window-level file drag-drop (Tauri). Only acted on while the import pick
+   * step is showing; a dropped .json is read like a chosen file. Fails silently
+   * outside Tauri (e.g. `ng serve`). */
+  private async listenForFileDrops(): Promise<void> {
+    try {
+      await getCurrentWebview().onDragDropEvent((event) => {
+        if (!this.dropActive()) return;
+        const p = event.payload;
+        if (p.type === "enter" || p.type === "over") {
+          this.dragOver.set(true);
+        } else if (p.type === "leave") {
+          this.dragOver.set(false);
+        } else if (p.type === "drop") {
+          this.dragOver.set(false);
+          const paths = p.paths ?? [];
+          const path =
+            paths.find((f) => f.toLowerCase().endsWith(".json")) ?? paths[0];
+          if (path) void this.readPath(path);
+        }
+      });
+    } catch {
+      // Not running under Tauri — drag-drop simply isn't available.
+    }
+  }
+
+  /** Whether a dropped file should be picked up right now. */
+  private dropActive(): boolean {
+    return (
+      this.mode() !== null &&
+      this.tab() === "import" &&
+      this.importStep() === "pick" &&
+      !this.busy()
+    );
   }
 
   private resetState(m: "export" | "import"): void {
@@ -146,27 +185,47 @@ export class ImportExportComponent {
     }
   }
 
+  /** Open the file picker and read the chosen backup. */
   async pickFile(): Promise<void> {
+    if (this.busy()) return;
     this.err.set("");
     this.msg.set("");
     this.busy.set(true);
     try {
       const res = await this.backup.pickAndRead();
-      if (res) {
-        const hosts = res.backup.hosts ?? [];
-        const noteCount = res.backup.notes?.length ?? 0;
-        this.importPath.set(res.path);
-        this.importHosts.set(hosts);
-        this.importNotesCount.set(noteCount);
-        this.importSel.set(new Set(hosts.map((h) => h.id)));
-        this.includeCommandsImport.set(noteCount > 0);
-        this.importStep.set("choose");
-      }
+      if (res) this.applyBackup(res.path, res.backup);
     } catch (e) {
       this.err.set(String(e));
     } finally {
       this.busy.set(false);
     }
+  }
+
+  /** Read a backup from a known path (a dropped file) and move to the chooser. */
+  private async readPath(path: string): Promise<void> {
+    this.err.set("");
+    this.msg.set("");
+    this.busy.set(true);
+    try {
+      const backup = await this.backup.read(path);
+      this.applyBackup(path, backup);
+    } catch (e) {
+      this.err.set(String(e));
+    } finally {
+      this.busy.set(false);
+    }
+  }
+
+  /** Load a parsed backup into the chooser step (all hosts pre-selected). */
+  private applyBackup(path: string, backup: BackupFile): void {
+    const hosts = backup.hosts ?? [];
+    const noteCount = backup.notes?.length ?? 0;
+    this.importPath.set(path);
+    this.importHosts.set(hosts);
+    this.importNotesCount.set(noteCount);
+    this.importSel.set(new Set(hosts.map((h) => h.id)));
+    this.includeCommandsImport.set(noteCount > 0);
+    this.importStep.set("choose");
   }
 
   async doImport(): Promise<void> {

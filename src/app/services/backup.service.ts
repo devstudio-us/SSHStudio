@@ -48,8 +48,12 @@ export class BackupService {
     return true;
   }
 
-  /** Prompt for a backup file and parse it (no changes yet). Returns null if
-   * the user cancelled. */
+  /** Parse a backup file at a known path (no changes yet). */
+  async read(path: string): Promise<BackupFile> {
+    return invoke<BackupFile>("read_backup", { path });
+  }
+
+  /** Prompt for a backup file and parse it. Returns null if the user cancelled. */
   async pickAndRead(): Promise<{ path: string; backup: BackupFile } | null> {
     const selected = await open({
       title: "Import SSHStudio data",
@@ -58,7 +62,7 @@ export class BackupService {
       filters: [{ name: "SSHStudio backup", extensions: ["json"] }],
     });
     if (typeof selected !== "string") return null;
-    const backup = await invoke<BackupFile>("read_backup", { path: selected });
+    const backup = await this.read(selected);
     return { path: selected, backup };
   }
 

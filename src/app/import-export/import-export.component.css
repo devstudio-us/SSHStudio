@@ -25,11 +25,26 @@
 .io-head {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  gap: 0.6rem;
   padding: 0.6rem 0.7rem 0.6rem 0.8rem;
   border-bottom: 1px solid var(--border);
 }
+.io-hico {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  flex-shrink: 0;
+  border-radius: 9px;
+  background-color: var(--accent-soft);
+  color: var(--accent);
+}
+.io-htitle {
+  font-size: 0.95rem;
+  font-weight: 700;
+}
 .io-tabs {
+  margin-left: auto;
   display: inline-flex;
   padding: 3px;
   gap: 2px;
@@ -179,14 +194,84 @@
 .io-pick {
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
-  gap: 0.75rem;
-  padding: 0.5rem 0;
+  gap: 0.85rem;
+  padding: 0.25rem 0;
 }
-.io-pick p {
-  margin: 0;
-  font-size: 0.88rem;
+
+/* Drop zone: click to pick, or drop a file anywhere in the window. */
+.io-dropzone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  text-align: center;
+  padding: 1.6rem 1.1rem;
+  border: 2px dashed var(--border-strong);
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+.io-dropzone:hover {
+  border-color: var(--accent);
+  background-color: color-mix(in srgb, var(--accent) 5%, transparent);
+}
+.io-dropzone.dragover {
+  border-color: var(--accent);
+  background-color: var(--accent-soft);
+}
+.io-dropzone.busy {
+  pointer-events: none;
+  opacity: 0.7;
+}
+.dz-ico {
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  border-radius: 14px;
+  background-color: var(--accent-soft);
+  color: var(--accent);
+}
+.dz-title {
+  font-size: 0.92rem;
+  font-weight: 650;
+}
+.dz-or {
+  font-size: 0.76rem;
+  color: var(--text-faint);
+}
+/* The visual "Choose file…" affordance (the whole zone is the click target). */
+.io-dropzone .io-btn {
+  pointer-events: none;
+}
+.dz-hint {
+  font-size: 0.74rem;
+  color: var(--text-faint);
+  margin-top: 0.1rem;
+}
+
+/* "What's included" checklist under the drop zone. */
+.io-incl {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+.incl-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.82rem;
   color: var(--text-muted);
+}
+.incl-row svg {
+  flex-shrink: 0;
+  color: color-mix(in srgb, #22c55e 82%, var(--text));
+}
+.incl-row.no {
+  color: var(--text-faint);
+}
+.incl-row.no svg {
+  color: var(--text-faint);
 }
 
 .io-foot {

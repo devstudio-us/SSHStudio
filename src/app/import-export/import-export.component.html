@@ -2,6 +2,12 @@
   <div class="io-overlay" (click)="close()">
     <div class="io-modal" (click)="$event.stopPropagation()">
       <div class="io-head">
+        <span class="io-hico">
+          <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M8 3v13M8 3 4 7M8 3l4 4" /><path d="M16 21V8M16 21l4-4M16 21l-4-4" />
+          </svg>
+        </span>
+        <span class="io-htitle">Import / Export</span>
         <div class="io-tabs" role="tablist">
           <button type="button" role="tab" [class.on]="tab() === 'export'" (click)="switchTab('export')">Export</button>
           <button type="button" role="tab" [class.on]="tab() === 'import'" (click)="switchTab('import')">Import</button>
@@ -56,10 +62,37 @@
         <div class="io-body">
           @if (importStep() === "pick") {
             <div class="io-pick">
-              <p>Choose a backup file, then pick which hosts to merge in.</p>
-              <button class="io-btn primary" type="button" [disabled]="busy()" (click)="pickFile()">
-                @if (busy()) { Reading… } @else { Choose file… }
-              </button>
+              <div class="io-dropzone" [class.dragover]="dragOver()" [class.busy]="busy()" (click)="pickFile()">
+                <span class="dz-ico">
+                  <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M4 15v4a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-4" /><path d="M12 3v12" /><path d="M8 11l4 4 4-4" />
+                  </svg>
+                </span>
+                @if (busy()) {
+                  <div class="dz-title">Reading…</div>
+                } @else {
+                  <div class="dz-title">Drop a backup file here</div>
+                  <div class="dz-or">— or —</div>
+                  <span class="io-btn primary">Choose file…</span>
+                  <div class="dz-hint">An SSHStudio <b>.json</b> export</div>
+                }
+              </div>
+
+              <div class="io-incl">
+                <div class="incl-row">
+                  <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5" /></svg>
+                  Hosts you select from the file
+                </div>
+                <div class="incl-row">
+                  <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5" /></svg>
+                  Their saved commands (optional)
+                </div>
+                <div class="incl-row no">
+                  <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12" /></svg>
+                  Passwords — never in the file
+                </div>
+              </div>
+
               @if (msg()) { <p class="io-msg ok">{{ msg() }}</p> }
               @if (err()) { <p class="io-msg err">{{ err() }}</p> }
             </div>
