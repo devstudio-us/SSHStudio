@@ -9,8 +9,101 @@ mod ssh;
 
 use tauri::Emitter;
 
+/// macOS Gatekeeper "App Translocation" workaround.
+///
+/// Because our macOS build is signed ad-hoc (not notarized), a downloaded copy
+/// keeps the `com.apple.quarantine` attribute, and macOS then runs it from a
+/// random, **read-only** location (`/private/.../AppTranslocation/...`). That
+/// read-only path is why the in-app updater fails on macOS with
+/// "Read-only file system (os error 30)".
+///
+/// On launch we fix this ourselves:
+/// - If we're running translocated, find the REAL installed copy (in
+///   /Applications or ~/Applications), strip its quarantine attribute, and
+///   relaunch from that writable path — then the updater works normally.
+/// - If we're already running from the real path but it's still quarantined,
+///   strip the attribute so a later launch never translocates.
+///
+/// The very first launch still shows the one-time Gatekeeper "unidentified
+/// developer" prompt (only Apple notarization removes that); everything after
+/// is clean, including silent in-place updates. No Terminal command needed.
+///
+/// `std::process::exit(0)` ends this (translocated) process after the real copy
+/// has been relaunched; we call this before Tauri starts, so there's no window
+/// or state to tear down. (Rust note: functions marked `#[cfg(target_os = ...)]`
+/// are compiled only for that OS, so this whole function is absent on Windows
+/// and Linux.)
+#[cfg(target_os = "macos")]
+fn fix_macos_quarantine() {
+    use std::path::Path;
+    use std::process::Command;
+
+    let Ok(exe) = std::env::current_exe() else {
+        return;
+    };
+    let translocated = exe.to_string_lossy().contains("/AppTranslocation/");
+
+    // The ".app" bundle directory we live inside (…/SSHStudio.app).
+    let bundle_dir = exe
+        .ancestors()
+        .find(|p| p.extension().and_then(|e| e.to_str()) == Some("app"));
+    let Some(bundle_dir) = bundle_dir else {
+        return;
+    };
+    let Some(bundle_name) = bundle_dir.file_name().map(|n| n.to_string_lossy().into_owned()) else {
+        return;
+    };
+
+    // Helper: does this path still carry the quarantine attribute?
+    let has_quarantine = |path: &str| -> bool {
+        Command::new("/usr/bin/xattr")
+            .args(["-p", "com.apple.quarantine", path])
+            .output()
+            .map(|o| o.status.success())
+            .unwrap_or(false)
+    };
+    // Helper: recursively strip quarantine (best effort).
+    let strip = |path: &str| {
+        let _ = Command::new("/usr/bin/xattr")
+            .args(["-dr", "com.apple.quarantine", path])
+            .status();
+    };
+
+    if translocated {
+        // Running from the read-only translocated copy: locate the real install.
+        let mut candidates = vec![format!("/Applications/{bundle_name}")];
+        if let Ok(home) = std::env::var("HOME") {
+            candidates.push(format!("{home}/Applications/{bundle_name}"));
+        }
+        let Some(real) = candidates.into_iter().find(|p| Path::new(p).exists()) else {
+            return; // installed somewhere unusual; leave it running as-is
+        };
+        strip(&real);
+        // Only relaunch if quarantine is actually gone, otherwise the relaunched
+        // copy would translocate again and we'd loop.
+        if has_quarantine(&real) {
+            return;
+        }
+        let _ = Command::new("/usr/bin/open")
+            .args(["-n", real.as_str()])
+            .spawn();
+        std::process::exit(0);
+    } else {
+        // Already running from the real path: if it's still quarantined, clear it
+        // so a future launch never translocates and the updater keeps working.
+        let real = bundle_dir.to_string_lossy();
+        if has_quarantine(&real) {
+            strip(&real);
+        }
+    }
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    // macOS only: undo Gatekeeper App Translocation so the updater can write.
+    #[cfg(target_os = "macos")]
+    fix_macos_quarantine();
+
     let builder = tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
