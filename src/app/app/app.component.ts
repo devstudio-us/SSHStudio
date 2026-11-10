@@ -2,6 +2,7 @@ import {
   ChangeDetectorRef,
   Component,
   computed,
+  HostListener,
   inject,
   OnInit,
   signal,
@@ -32,7 +33,7 @@ import { Note } from "../models/note.model";
 
 type View = "terminals" | "dashboard" | "notes" | "settings";
 /** Within the host workspace (terminals view), show the shells or the files. */
-type WorkspaceMode = "terminal" | "files";
+type WorkspaceMode = "terminal" | "files" | "commands";
 
 /** An open (or recently closed) SSH session shown as a terminal tab. */
 interface Session {
@@ -124,6 +125,16 @@ export class AppComponent implements OnInit {
   readonly view = signal<View>("dashboard");
   /** Terminal vs Files within the active host's workspace. */
   readonly workspaceMode = signal<WorkspaceMode>("terminal");
+
+  /** "commands" is a mobile-only workspace mode (driven by the bottom bar). If
+   * the window grows to desktop width, fall back to the terminal — on desktop
+   * the commands panel is a side column again, so there's no "commands" mode. */
+  @HostListener("window:resize")
+  onWorkspaceResize(): void {
+    if (window.innerWidth > 760 && this.workspaceMode() === "commands") {
+      this.workspaceMode.set("terminal");
+    }
+  }
   /** Mobile only: whether the host/nav sidebar drawer is open. On desktop the
    * sidebar is always in the layout and this flag is ignored by the CSS. */
   readonly sidebarOpen = signal(false);
@@ -762,12 +773,24 @@ export class AppComponent implements OnInit {
     }
 
     if (note.host_id) {
-      const live = this.sessions().find(
-        (s) => s.host.id === note.host_id && !s.closed,
+      // Prefer the tab the user is currently on (when it's for this host), so a
+      // command runs where they expect — not just the first tab of that host.
+      const activeId = this.activeId();
+      const active = this.sessions().find(
+        (s) => s.id === activeId && !s.closed && s.host.id === note.host_id,
       );
+      const live =
+        active ??
+        this.sessions().find((s) => s.host.id === note.host_id && !s.closed);
       if (live) {
         this.activeId.set(live.id);
         this.view.set("terminals");
+        // Mobile only: running from the Commands pane should reveal the terminal
+        // so you see the output. "commands" mode never happens on desktop, so
+        // this leaves desktop behaviour unchanged.
+        if (this.workspaceMode() === "commands") {
+          this.workspaceMode.set("terminal");
+        }
         await this.ssh.writePty(live.id, this.withEnter(command));
         return;
       }
@@ -786,6 +809,10 @@ export class AppComponent implements OnInit {
       active != null && this.sessions().some((s) => s.id === active && !s.closed);
     if (liveActive) {
       this.view.set("terminals");
+      // Mobile only (see above): reveal the terminal after running.
+      if (this.workspaceMode() === "commands") {
+        this.workspaceMode.set("terminal");
+      }
       await this.ssh.writePty(active, this.withEnter(command));
     } else {
       this.runHostPicker.set(command); // ask which host to run on

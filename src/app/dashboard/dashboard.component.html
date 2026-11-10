@@ -27,11 +27,11 @@
         </svg>
       </button>
     }
-    <button class="io-trigger" type="button" (click)="openImportExport()" title="Import or export hosts">
+    <button class="io-trigger" type="button" (click)="openImportExport()" title="Import or export hosts" aria-label="Import or export hosts">
       <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <path d="M12 3v10M8 7l4-4 4 4M5 15v4a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-4" />
       </svg>
-      Import / Export
+      <span class="io-label">Import / Export</span>
     </button>
     <button class="primary add-host" type="button" (click)="addHost.emit()">
       <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14" /></svg>

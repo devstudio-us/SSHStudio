@@ -1,4 +1,4 @@
-<div class="head">
+<div class="head" [class.search-open]="searchOpen()">
   <h2>Commands</h2>
   <div class="spacer"></div>
   <app-select
@@ -7,12 +7,19 @@
     [value]="scopeFilter()"
     (valueChange)="scopeFilter.set($event ?? 'all')"
   />
+  <!-- Mobile only: a search icon that expands the field on tap (CSS-gated). -->
+  <button class="search-icon" type="button" (click)="openSearch()" title="Search commands" aria-label="Search commands">
+    <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" /></svg>
+  </button>
   <input
+    #searchRef
     class="search"
     type="search"
     placeholder="Search commands…"
     [value]="query()"
     (input)="query.set(value($event))"
+    (blur)="onSearchBlur()"
+    (keydown.escape)="collapseSearch()"
   />
   <button class="primary new" type="button" (click)="addNew.emit()">
     <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14" /></svg>
@@ -122,7 +129,16 @@
                     }
                   </div>
                   @if (note.command) {
-                    <code class="cmd">{{ note.command }}</code>
+                    <div class="cmd-wrap">
+                      <code class="cmd">{{ note.command }}</code>
+                      <button class="cmd-copy" type="button" (click)="copy(note); $event.stopPropagation()" [title]="copiedId() === note.id ? 'Copied' : 'Copy command'" aria-label="Copy command">
+                        @if (copiedId() === note.id) {
+                          <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5" /></svg>
+                        } @else {
+                          <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="12" height="12" rx="2" /><path d="M5 15V5a2 2 0 0 1 2-2h8" /></svg>
+                        }
+                      </button>
+                    </div>
                   }
                   @if (note.text) {
                     <div class="detail">
@@ -130,6 +146,24 @@
                       <p class="desc">{{ note.text }}</p>
                     </div>
                   }
+
+                  <!-- Mobile-only: big labeled actions, shown when the row is open. -->
+                  <div class="m-actbar">
+                    @if (note.command) {
+                      <button class="m-btn" type="button" (click)="run.emit(note); $event.stopPropagation()">
+                        <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><polygon points="6 4 20 12 6 20 6 4" /></svg>
+                        Run
+                      </button>
+                    }
+                    <button class="m-btn" type="button" (click)="edit.emit(note); $event.stopPropagation()">
+                      <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9" /><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" /></svg>
+                      Edit
+                    </button>
+                    <button class="m-btn danger" type="button" (click)="remove.emit(note); $event.stopPropagation()">
+                      <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2m2 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" /><path d="M10 11v6M14 11v6" /></svg>
+                      Delete
+                    </button>
+                  </div>
                 </div>
 
                 <div class="acts">
@@ -159,3 +193,8 @@
     }
   </div>
 }
+
+<!-- Mobile-only floating New button (replaces the header "New" at phone width). -->
+<button class="fab-new" type="button" (click)="addNew.emit()" title="New command" aria-label="New command">
+  <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14" /></svg>
+</button>

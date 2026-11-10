@@ -107,11 +107,32 @@
   .dash-grid {
     grid-template-columns: 1fr;
   }
+  /* Controls take their own full-width row under the title and share it:
+     search + import/export on the left, Add host anchored to the right. */
+  .dash-controls {
+    width: 100%;
+  }
   /* Let the search field share the row instead of forcing a fixed 200px. */
   .dash-search {
     flex: 1;
   }
   .dash-search input {
     width: 100%;
+  }
+  /* Collapse Import/Export to an icon-only square (same size as the search
+     icon) so the controls row stays on one line at phone width. */
+  .io-trigger {
+    width: 38px;
+    height: 38px;
+    padding: 0;
+    justify-content: center;
+    gap: 0;
+  }
+  .io-trigger .io-label {
+    display: none;
+  }
+  /* Keep the primary action labelled, pushed to the right edge. */
+  .add-host {
+    margin-left: auto;
   }
 }
