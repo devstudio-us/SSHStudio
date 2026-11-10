@@ -6,7 +6,9 @@ mod secrets;
 mod settings;
 mod sftp;
 mod ssh;
+mod system_bar;
 
+#[cfg(desktop)]
 use tauri::Emitter;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -21,7 +23,14 @@ pub fn run() {
     #[cfg(desktop)]
     let builder = builder
         .plugin(tauri_plugin_process::init())
-        .plugin(tauri_plugin_updater::Builder::new().build());
+        .plugin(tauri_plugin_updater::Builder::new().build())
+        // The macOS "About" menu item asks the frontend to open the modal.
+        // Menus are desktop-only in Tauri.
+        .on_menu_event(|app, event| {
+            if event.id().as_ref() == "about" {
+                let _ = app.emit("open-about", ());
+            }
+        });
 
     builder
         // macOS always shows a native menu bar; by default its first menu has
@@ -63,12 +72,6 @@ pub fn run() {
             }
             Ok(())
         })
-        // The macOS "About" menu item asks the frontend to open the modal.
-        .on_menu_event(|app, event| {
-            if event.id().as_ref() == "about" {
-                let _ = app.emit("open-about", ());
-            }
-        })
         .manage(ssh::SessionManager::new())
         .manage(metrics::MetricsManager::new())
         .manage(sftp::SftpManager::new())
@@ -104,6 +107,7 @@ pub fn run() {
             sftp::sftp_disconnect,
             sftp::local_home,
             sftp::local_list,
+            system_bar::set_status_bar_style,
             settings::get_settings,
             settings::set_download_dir,
             backup::export_data,

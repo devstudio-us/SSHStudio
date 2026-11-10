@@ -6,7 +6,9 @@
     "start": "ng serve",
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
-    "tauri": "tauri"
+    "tauri": "tauri",
+    "android:dev": "adb reverse tcp:1420 tcp:1420 && tauri android dev --host 127.0.0.1",
+    "android:apk": "tauri android build --debug --apk --target aarch64"
   },
   "private": true,
   "dependencies": {

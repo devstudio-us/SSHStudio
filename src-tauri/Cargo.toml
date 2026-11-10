@@ -40,6 +40,11 @@ tauri-plugin-process = "2"
 keyring = { version = "3", default-features = false, features = ["apple-native", "windows-native", "sync-secret-service", "crypto-rust"] }
 
 
+# Android-only: JNI access to set the system-bar icon colour (see system_bar.rs).
+# Same major version as the one wry/tauri already use.
+[target.'cfg(target_os = "android")'.dependencies]
+jni = "0.21"
+
 # Read the optimization guideline for more details: https://tauri.app/concept/size/#cargo-configuration
 [profile.release]
 codegen-units = 1
