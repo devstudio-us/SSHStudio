@@ -15,7 +15,8 @@ use tauri::Emitter;
 pub fn run() {
     let builder = tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
-        .plugin(tauri_plugin_dialog::init());
+        .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_fs::init());
 
     // The process (relaunch) and updater plugins are desktop-only. The updater's
     // config (endpoint + public key) lives in tauri.conf.json under

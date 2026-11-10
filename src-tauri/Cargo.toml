@@ -21,6 +21,12 @@ tauri-build = { version = "2", features = [] }
 tauri = { version = "2", features = [] }
 tauri-plugin-opener = "2"
 tauri-plugin-dialog = "2"
+# File-system plugin. We use it ONLY from Rust (never grant the webview any
+# `fs:` permission) so that reading a user-picked backup file works on Android:
+# the picker returns a `content://` URI there, which `std::fs` can't open but
+# this plugin resolves via Android's ContentResolver. On desktop it reads plain
+# paths, so one code path covers every platform.
+tauri-plugin-fs = "2"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 toml = "0.8"
