@@ -9,7 +9,9 @@
 
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
+use std::str::FromStr;
 use tauri::AppHandle;
+use tauri_plugin_fs::{FilePath, FsExt};
 
 use crate::hosts::{self, Host};
 use crate::notes::{self, Note};
@@ -80,8 +82,8 @@ pub fn export_data(
 /// Parse a backup file and return it, so the UI can show its hosts/commands for
 /// the user to pick which to import. Rejects files that aren't SSHStudio backups.
 #[tauri::command]
-pub fn read_backup(path: String) -> Result<Backup, String> {
-    let backup = parse(&path)?;
+pub fn read_backup(app: AppHandle, path: String) -> Result<Backup, String> {
+    let backup = parse(&app, &path)?;
     Ok(backup)
 }
 
@@ -95,7 +97,7 @@ pub fn import_data(
     host_ids: Vec<String>,
     include_notes: bool,
 ) -> Result<ImportSummary, String> {
-    let backup = parse(&path)?;
+    let backup = parse(&app, &path)?;
     let sel: HashSet<&str> = host_ids.iter().map(|s| s.as_str()).collect();
 
     let mut hosts = hosts::load(&app)?;
@@ -164,8 +166,18 @@ pub fn import_data(
 }
 
 /// Read + parse + validate a backup file.
-fn parse(path: &str) -> Result<Backup, String> {
-    let text = std::fs::read_to_string(path).map_err(|e| format!("could not read {path}: {e}"))?;
+///
+/// The file is read through the fs plugin (not `std::fs`) so the path may be a
+/// `content://` URI — that's what Android's file picker hands back, and only the
+/// plugin's ContentResolver-backed reader can open it. On desktop a plain path
+/// takes the same route and reads normally. `FilePath::from_str` is infallible
+/// (its error type is the never type), so the parse can't fail here.
+fn parse(app: &AppHandle, path: &str) -> Result<Backup, String> {
+    let file = FilePath::from_str(path).expect("FilePath::from_str is infallible");
+    let text = app
+        .fs()
+        .read_to_string(file)
+        .map_err(|e| format!("could not read {path}: {e}"))?;
     let backup: Backup = serde_json::from_str(&text)
         .map_err(|e| format!("not a valid SSHStudio backup file: {e}"))?;
     if backup.format != FORMAT {
