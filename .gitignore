@@ -43,3 +43,6 @@ Thumbs.db
 
 # Claude Code project instructions (local only)
 CLAUDE.md
+
+# Generated Android project (recreate with: npm run tauri android init -- --ci)
+/src-tauri/gen/
