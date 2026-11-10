@@ -53,9 +53,16 @@ pub fn export_data(
 ) -> Result<(), String> {
     let sel: HashSet<&str> = host_ids.iter().map(|s| s.as_str()).collect();
 
+    // Strip the private-key path: the export carries no secrets, and the key
+    // location is a local-machine detail that shouldn't leave this device (same
+    // rule as on-disk config — keys are referenced by path only, never copied).
     let hosts: Vec<Host> = hosts::load(&app)?
         .into_iter()
         .filter(|h| sel.contains(h.id.as_str()))
+        .map(|mut h| {
+            h.identity_file = None;
+            h
+        })
         .collect();
 
     let notes: Vec<Note> = if include_notes {
