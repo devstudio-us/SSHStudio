@@ -7,7 +7,7 @@
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
     "tauri": "tauri",
-    "android:icons": "tauri icon src-tauri/icons/app-icon-source-1024.png",
+    "android:icons": "tauri icon src-tauri/icons/icon-manifest.json",
     "android:init": "tauri android init && npm run android:icons",
     "android:dev": "npm run android:icons && adb reverse tcp:1420 tcp:1420 && tauri android dev --host 127.0.0.1",
     "android:apk": "npm run android:icons && tauri android build --debug --apk --target aarch64"

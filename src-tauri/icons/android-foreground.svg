@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <!-- Android adaptive-icon foreground: the SSHStudio glyph only (transparent
+       background; the dark tile comes from bg_color in icon-manifest.json).
+       The brand glyph (favicon.svg, 256-unit canvas) is scaled and centered so
+       it occupies ~55% of the tile — a medium size that sits inside the
+       adaptive safe zone with comfortable padding. -->
+  <g fill="#FF8B33" transform="translate(307 307) scale(1.6)">
+    <path d="M 44,14 A 14.0014,14.0014 0 0 0 30,28 v 84 a 14,14 0 0 0 14,14 14,14 0 0 0 14,-14 V 42 h 118 c 14.36362,0 26,11.636378 26,26 v 20 a 14,14 0 0 0 14,14 14,14 0 0 0 14,-14 V 68 C 230,38.363666 205.63633,14 176,14 Z"/>
+    <path d="m 212,130 a 14,14 0 0 0 -14,14 v 70 H 80 C 65.636378,214 54,202.36362 54,188 V 168 A 14,14 0 0 0 40,154 14,14 0 0 0 26,168 v 20 c 0,29.63633 24.363666,54 54,54 h 132 a 14.0014,14.0014 0 0 0 14,-14 v -84 a 14,14 0 0 0 -14,-14 z"/>
+    <path d="m 80,80 a 12,12 0 0 0 -8.484375,3.515625 12,12 0 0 0 0,16.968755 L 99.03125,128 71.515625,155.51562 a 12,12 0 0 0 0,16.96875 12,12 0 0 0 16.96875,0 l 36.000005,-36 a 12.0012,12.0012 0 0 0 0,-16.96874 L 88.484375,83.515625 A 12,12 0 0 0 80,80 Z"/>
+    <path d="m 148,152 a 12,12 0 0 0 -12,12 12,12 0 0 0 12,12 h 28 a 12,12 0 0 0 12,-12 12,12 0 0 0 -12,-12 z"/>
+  </g>
+</svg>
