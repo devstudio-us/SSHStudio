@@ -4,6 +4,7 @@ import {
   computed,
   HostListener,
   inject,
+  OnDestroy,
   OnInit,
   signal,
 } from "@angular/core";
@@ -28,6 +29,9 @@ import { NotesService } from "../services/notes.service";
 import { SftpService } from "../services/sftp.service";
 import { SecretsService } from "../services/secrets.service";
 import { UpdateService } from "../services/update.service";
+import { ImportExportService } from "../services/import-export.service";
+import { onBackButtonPress, exit } from "@tauri-apps/api/app";
+import type { PluginListener } from "@tauri-apps/api/core";
 import { Host } from "../models/host.model";
 import { Note } from "../models/note.model";
 
@@ -102,7 +106,7 @@ interface ConfirmState {
   templateUrl: "./app.component.html",
   styleUrl: "./app.component.css",
 })
-export class AppComponent implements OnInit {
+export class AppComponent implements OnInit, OnDestroy {
   private readonly hostsService = inject(HostsService);
   private readonly themeService = inject(ThemeService);
   private readonly ssh = inject(SshService);
@@ -111,7 +115,11 @@ export class AppComponent implements OnInit {
   private readonly secrets = inject(SecretsService);
   private readonly update = inject(UpdateService);
   private readonly aboutService = inject(AboutService);
+  private readonly io = inject(ImportExportService);
   private readonly cdr = inject(ChangeDetectorRef);
+
+  /** Android back-button listener handle (null off Android / outside Tauri). */
+  private backListener: PluginListener | null = null;
 
   readonly hosts = this.hostsService.hosts;
   readonly notes = this.notesService.notes;
@@ -222,6 +230,54 @@ export class AppComponent implements OnInit {
     // macOS menu "About SSHStudio" → open the same in-app modal. No-op outside
     // Tauri (e.g. `ng serve`).
     void listen("open-about", () => this.aboutService.show()).catch(() => {});
+    // Android hardware/gesture back: route it through our own navigation instead
+    // of letting it close the app. onBackButtonPress fires on Android ONLY — on
+    // desktop/iOS the handler is never called, and off-Tauri (`ng serve`) the
+    // registration throws and is swallowed, so the web view is never affected.
+    try {
+      this.backListener = await onBackButtonPress(() => this.handleAndroidBack());
+    } catch {
+      // Not Android (or not running under Tauri): no back button to handle.
+    }
+  }
+
+  ngOnDestroy(): void {
+    void this.backListener?.unregister();
+  }
+
+  /**
+   * Android back. Walks a sensible order: dismiss the topmost overlay, then step
+   * out of a workspace sub-mode (Files/Commands → terminal), then fall back to
+   * the Dashboard (the app's home), and only exit at the very root. Each step
+   * reuses the same close/cancel methods the UI buttons call. Android-only — see
+   * the registration in ngOnInit.
+   */
+  private handleAndroidBack(): void {
+    // 1. Close whatever overlay is on top, if any.
+    if (this.secretPrompt()) return this.cancelSecret();
+    if (this.confirmState()) return this.confirmState.set(null);
+    if (this.terminalChoice()) return this.cancelTerminalChoice();
+    if (this.runHostPicker()) return this.cancelRunHost();
+    if (this.showNoteForm()) return this.closeNoteForm();
+    if (this.showHostForm()) return this.closeHostForm();
+    if (this.aboutService.open()) return this.aboutService.close();
+    if (this.io.mode()) return this.io.close();
+    if (this.sidebarOpen()) return this.closeSidebar();
+
+    // 2. In a host workspace, back out of Files/Commands to the terminal first.
+    if (this.view() === "terminals" && this.workspaceMode() !== "terminal") {
+      this.workspaceMode.set("terminal");
+      return;
+    }
+
+    // 3. Not on the Dashboard? Go there rather than leaving the app.
+    if (this.view() !== "dashboard") {
+      this.setView("dashboard");
+      return;
+    }
+
+    // 4. Root (Dashboard, nothing open): leave the app, like a normal Android app.
+    void exit(0);
   }
 
   /** Open the shared About modal (topbar logo). */
