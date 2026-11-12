@@ -7,7 +7,7 @@ mod settings;
 mod sftp;
 mod ssh;
 
-use tauri::Emitter;
+use tauri::{Emitter, Manager};
 
 /// macOS Gatekeeper "App Translocation" workaround.
 ///
@@ -157,6 +157,16 @@ pub fn run() {
         // The macOS "About" menu item asks the frontend to open the modal.
         .on_menu_event(|app, event| {
             if event.id().as_ref() == "about" {
+                // Our About is an in-app modal rendered inside the single
+                // webview window. On macOS the menu bar stays active while the
+                // window is minimized (or hidden via Cmd+H), so without this
+                // the modal would open inside a window the user can't see.
+                // Bring the window back to the front first.
+                if let Some(win) = app.get_webview_window("main") {
+                    let _ = win.unminimize();
+                    let _ = win.show();
+                    let _ = win.set_focus();
+                }
                 let _ = app.emit("open-about", ());
             }
         })
