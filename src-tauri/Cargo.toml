@@ -21,7 +21,12 @@ tauri-build = { version = "2", features = [] }
 tauri = { version = "2", features = [] }
 tauri-plugin-opener = "2"
 tauri-plugin-dialog = "2"
-tauri-plugin-process = "2"
+# File-system plugin. We use it ONLY from Rust (never grant the webview any
+# `fs:` permission) so that reading a user-picked backup file works on Android:
+# the picker returns a `content://` URI there, which `std::fs` can't open but
+# this plugin resolves via Android's ContentResolver. On desktop it reads plain
+# paths, so one code path covers every platform.
+tauri-plugin-fs = "2"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 toml = "0.8"
@@ -29,14 +34,22 @@ uuid = { version = "1", features = ["v4"] }
 russh = "0.52"
 russh-sftp = "2"
 tokio = { version = "1", features = ["sync", "macros", "rt-multi-thread", "io-util", "time"] }
+
+# Desktop-only crates. The updater and process (relaunch) plugins and the
+# `keyring` crate have no mobile backend, so they're excluded from Android/iOS
+# builds; `secrets.rs` and `lib.rs` branch to mobile-safe code there.
+[target.'cfg(not(any(target_os = "android", target_os = "ios")))'.dependencies]
+tauri-plugin-updater = "2"
+tauri-plugin-process = "2"
 # OS keychain for saved host passwords (never written to the config files).
 # Pure-Rust backends so Linux needs no extra system libs (dbus/openssl).
 keyring = { version = "3", default-features = false, features = ["apple-native", "windows-native", "sync-secret-service", "crypto-rust"] }
 
-# The auto-updater is desktop-only (no mobile builds use it).
-[target.'cfg(not(any(target_os = "android", target_os = "ios")))'.dependencies]
-tauri-plugin-updater = "2"
 
+# Android-only: JNI access to set the system-bar icon colour (see system_bar.rs).
+# Same major version as the one wry/tauri already use.
+[target.'cfg(target_os = "android")'.dependencies]
+jni = "0.21"
 
 # Read the optimization guideline for more details: https://tauri.app/concept/size/#cargo-configuration
 [profile.release]

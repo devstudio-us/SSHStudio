@@ -265,6 +265,38 @@
           [style.display]="workspaceMode() === 'files' ? 'flex' : 'none'"
         />
       }
+
+      <!-- Mobile only: Commands shown full-screen (the desktop side panel is
+           hidden on phones). Toggled by the bottom bar; CSS hides it on desktop. -->
+      @if (activeHost(); as h) {
+        <app-note-panel
+          class="ws-pane m-commands-pane"
+          [class.on]="workspaceMode() === 'commands'"
+          [host]="h"
+          [notes]="notes()"
+          (run)="runNote($event)"
+          (edit)="openNoteEdit($event)"
+          (add)="openNoteForm($event)"
+        />
+      }
+
+      <!-- Mobile only: bottom bar to switch Terminal / Files / Commands. -->
+      @if (!showConnecting() && activeHost()) {
+        <nav class="ws-segbar" aria-label="Workspace">
+          <button type="button" [class.on]="workspaceMode() === 'terminal'" (click)="workspaceMode.set('terminal')">
+            <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="18" rx="2" /><path d="m6 8 3 3-3 3M12 14h5" /></svg>
+            Terminal
+          </button>
+          <button type="button" [class.on]="workspaceMode() === 'files'" (click)="workspaceMode.set('files')">
+            <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z" /></svg>
+            Files
+          </button>
+          <button type="button" [class.on]="workspaceMode() === 'commands'" (click)="workspaceMode.set('commands')">
+            <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 3h11l5 5v13a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Z" /><path d="M14 3v6h6M8 13h8M8 17h5" /></svg>
+            Commands
+          </button>
+        </nav>
+      }
     </section>
 
     <!-- Dashboard view. -->

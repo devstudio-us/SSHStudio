@@ -1,4 +1,5 @@
 import { Injectable, computed, effect, signal } from "@angular/core";
+import { invoke } from "@tauri-apps/api/core";
 
 /** The theme actually applied to the DOM. */
 export type Theme = "light" | "dark";
@@ -6,6 +7,12 @@ export type Theme = "light" | "dark";
 export type ThemeMode = "light" | "dark" | "system";
 
 const STORAGE_KEY = "ssh-manager-theme";
+
+/** True only inside the Android app (never desktop, never a plain browser). */
+const IS_ANDROID_APP =
+  typeof window !== "undefined" &&
+  "__TAURI_INTERNALS__" in window &&
+  /android/i.test(navigator.userAgent);
 
 /**
  * Tracks the chosen theme mode in a signal, resolves it to an effective
@@ -36,7 +43,15 @@ export class ThemeService {
 
     // Re-run whenever the resolved theme or mode changes: apply + persist.
     effect(() => {
-      document.documentElement.dataset["theme"] = this.theme();
+      const theme = this.theme();
+      document.documentElement.dataset["theme"] = theme;
+      // Android only: flip the status/navigation bar icon colour to match the
+      // app theme (it doesn't follow our in-app toggle on its own).
+      if (IS_ANDROID_APP) {
+        invoke("set_status_bar_style", { dark: theme === "dark" }).catch(
+          () => {},
+        );
+      }
       try {
         localStorage.setItem(STORAGE_KEY, this.mode());
       } catch {

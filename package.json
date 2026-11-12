@@ -6,7 +6,13 @@
     "start": "ng serve",
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
-    "tauri": "tauri"
+    "tauri": "tauri",
+    "android:icons": "tauri icon src-tauri/icons/icon-manifest.json",
+    "android:init": "tauri android init && npm run android:icons",
+    "android:dev": "npm run android:icons && adb reverse tcp:1420 tcp:1420 && tauri android dev --host 127.0.0.1",
+    "android:apk": "npm run android:icons && tauri android build --debug --apk --target aarch64",
+    "ios:icons": "npm run android:icons && cp src-tauri/icons/ios/*.png src-tauri/gen/apple/Assets.xcassets/AppIcon.appiconset/",
+    "ios:build": "npm run ios:icons && tauri ios build --debug --export-method debugging"
   },
   "private": true,
   "dependencies": {

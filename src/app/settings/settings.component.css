@@ -382,20 +382,29 @@
   :host {
     padding: 1rem;
   }
-  /* Stack the label and its control so neither gets crushed on a phone. */
+  /* Option B: stack the label and its control so neither gets crushed, and give
+     the control full width for a bigger tap target. */
   .row.between {
     flex-direction: column;
     align-items: stretch;
     gap: 0.6rem;
   }
+  /* Full-width segmented theme picker and full-width action buttons. */
   .seg {
     width: 100%;
   }
   .seg button {
     flex: 1;
   }
-  .switch {
-    align-self: flex-start;
+  .btn {
+    width: 100%;
+    justify-content: center;
+  }
+  /* Toggle rows are the exception: the switch is small, so keep it on one line
+     with the label, sitting on the right. */
+  .row.between:has(.switch) {
+    flex-direction: row;
+    align-items: center;
   }
   .notice.avail {
     flex-direction: column;

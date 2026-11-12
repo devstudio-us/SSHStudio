@@ -3,6 +3,20 @@
   height: 100%;
   overflow-y: auto;
   padding: 1.25rem;
+  /* Monospace colour for the light command block (mobile). */
+  --cmd-code: #0b7285;
+}
+:host-context([data-theme="dark"]) {
+  --cmd-code: #5ccfe0;
+}
+
+/* Mobile-only elements (inline copy, big action bar, floating +, search icon)
+   are hidden on desktop; the max-width block below turns them on. */
+.cmd-copy,
+.m-actbar,
+.fab-new,
+.search-icon {
+  display: none;
 }
 
 /* --- header: title, scope filter, search, new --- */
@@ -362,12 +376,203 @@
   :host {
     padding: 1rem;
   }
+  /* Header stacks: the title takes its own line, then the scope filter and
+     search share the row below it. New becomes the floating + button. */
   .head {
     margin-bottom: 0.85rem;
   }
-  /* Search grows to fill the row rather than sitting at a fixed 220px. */
+  .head .spacer {
+    display: none;
+  }
+  .head h2 {
+    flex-basis: 100%;
+  }
+  .head .new {
+    display: none;
+  }
+  .scope-select {
+    min-width: 0;
+    flex: 1 1 120px;
+  }
+  /* Search collapses to an icon; tapping it reveals the field (.search-open). */
+  .search-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 38px;
+    height: 38px;
+    flex: none;
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-sm);
+    background-color: var(--surface-2);
+    color: var(--text-muted);
+  }
+  .search-icon:hover {
+    color: var(--accent);
+    border-color: var(--accent);
+  }
   .search {
+    display: none;
     flex: 1 1 140px;
     width: auto;
+  }
+  .head.search-open .search {
+    display: block;
+  }
+  .head.search-open .search-icon {
+    display: none;
+  }
+
+  /* --- Option C: each command is a separate card --- */
+  /* The section loses its container chrome; its header becomes a plain label. */
+  .section {
+    border: none;
+    border-radius: 0;
+    background: transparent;
+    overflow: visible;
+  }
+  .sec-head {
+    border-bottom: none;
+    padding: 0.2rem 0.25rem 0.55rem;
+  }
+  .rows {
+    gap: 0.5rem;
+  }
+  .row {
+    flex-wrap: wrap;
+    column-gap: 0.6rem;
+    row-gap: 0;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background-color: var(--surface);
+    padding: 0.7rem 0.8rem;
+  }
+  .row:first-child {
+    border-top: 1px solid var(--border);
+  }
+  .row:hover {
+    background-color: var(--surface);
+  }
+  /* Dissolve the .main wrapper so the name line, command block, description and
+     action bar become direct flex items of the row. That lets the expanded
+     blocks span the FULL card width instead of starting after the run button. */
+  .main {
+    display: contents;
+  }
+  /* Reordering isn't offered on mobile (no sort control), so drop the grip. */
+  .grip {
+    display: none;
+  }
+  /* The sort / "Custom order" dropdown is hidden on mobile. */
+  .sort-select {
+    display: none;
+  }
+
+  /* Tags drop UNDER the name; the expand chevron moves to the right edge. */
+  .nm-line {
+    flex: 1 1 0;
+    min-width: 0;
+    flex-wrap: wrap;
+  }
+  .nm-line .exp {
+    margin-left: auto;
+  }
+  .nm-line .tags {
+    flex-basis: 100%;
+    margin-top: 0.35rem;
+  }
+
+  /* Collapsed: just run + name (+ tags). The command block and the top-right
+     icon actions are hidden; actions live in the expanded action bar instead. */
+  .row:not(.open) .cmd-wrap {
+    display: none;
+  }
+  .acts {
+    display: none;
+  }
+
+  /* Expanded: a LIGHT command block with an inline copy button. */
+  .row.open .cmd-wrap {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin-top: 0.5rem;
+    flex-basis: 100%;
+  }
+  /* Description spans the full card width too (it's now a direct flex item). */
+  .row.open .detail {
+    flex-basis: 100%;
+    margin-top: 0.5rem;
+  }
+  .row.open .cmd {
+    flex: 1;
+    min-width: 0;
+    margin-top: 0;
+    background-color: var(--surface-2);
+    color: var(--cmd-code);
+    border: 1px solid var(--border);
+  }
+  .row.open .cmd::before {
+    content: "";
+  }
+  .cmd-copy {
+    display: grid;
+    place-items: center;
+    flex: none;
+    width: 36px;
+    height: 36px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background-color: var(--surface);
+    color: var(--text-muted);
+  }
+  .cmd-copy:hover {
+    color: var(--accent);
+    border-color: var(--accent);
+  }
+
+  /* Expanded: big labeled Run / Edit / Delete buttons. */
+  .row.open .m-actbar {
+    display: flex;
+    flex-basis: 100%;
+    gap: 0.5rem;
+    margin-top: 0.7rem;
+  }
+  .m-btn {
+    flex: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    height: 40px;
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-sm);
+    background-color: var(--surface);
+    color: var(--text);
+    font-size: 0.8rem;
+    font-weight: 600;
+  }
+  .m-btn.danger {
+    color: var(--danger);
+    border-color: color-mix(in srgb, var(--danger) 35%, transparent);
+  }
+
+  /* Floating New button. */
+  .fab-new {
+    display: grid;
+    place-items: center;
+    position: fixed;
+    right: 1rem;
+    bottom: 1rem;
+    width: 54px;
+    height: 54px;
+    border-radius: 50%;
+    background-color: var(--accent);
+    color: var(--accent-contrast);
+    border: none;
+    box-shadow:
+      0 10px 24px -6px var(--accent-glow),
+      0 2px 8px rgba(0, 0, 0, 0.25);
+    z-index: 30;
   }
 }

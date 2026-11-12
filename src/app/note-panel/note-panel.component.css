@@ -220,3 +220,18 @@
   background-color: var(--accent);
   color: var(--accent-contrast);
 }
+
+/* On a phone this panel is shown full-screen (the mobile "Commands" segment of
+   the workspace), not as a 330px side rail. Only the mobile instance is visible
+   here — the desktop side instance is hidden at this width — so it's safe to
+   stretch it and drop the collapse control. */
+@media (max-width: 760px) {
+  .panel {
+    width: 100%;
+    border-left: none;
+  }
+  /* No collapse-to-rail on mobile; the bottom bar switches views instead. */
+  .panel-head .mini {
+    display: none;
+  }
+}

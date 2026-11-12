@@ -6,7 +6,9 @@ mod secrets;
 mod settings;
 mod sftp;
 mod ssh;
+mod system_bar;
 
+#[cfg(desktop)]
 use tauri::{Emitter, Manager};
 
 /// macOS Gatekeeper "App Translocation" workaround.
@@ -107,12 +109,32 @@ pub fn run() {
     let builder = tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
-        .plugin(tauri_plugin_process::init());
+        .plugin(tauri_plugin_fs::init());
 
-    // The updater plugin exists on desktop only. Its config (endpoint + public
-    // key) lives in tauri.conf.json under `plugins.updater`.
+    // The process (relaunch) and updater plugins are desktop-only. The updater's
+    // config (endpoint + public key) lives in tauri.conf.json under
+    // `plugins.updater`.
     #[cfg(desktop)]
-    let builder = builder.plugin(tauri_plugin_updater::Builder::new().build());
+    let builder = builder
+        .plugin(tauri_plugin_process::init())
+        .plugin(tauri_plugin_updater::Builder::new().build())
+        // The macOS "About" menu item asks the frontend to open the modal.
+        // Menus are desktop-only in Tauri.
+        .on_menu_event(|app, event| {
+            if event.id().as_ref() == "about" {
+                // Our About is an in-app modal rendered inside the single
+                // webview window. On macOS the menu bar stays active while the
+                // window is minimized (or hidden via Cmd+H), so without this
+                // the modal would open inside a window the user can't see.
+                // Bring the window back to the front first.
+                if let Some(win) = app.get_webview_window("main") {
+                    let _ = win.unminimize();
+                    let _ = win.show();
+                    let _ = win.set_focus();
+                }
+                let _ = app.emit("open-about", ());
+            }
+        });
 
     builder
         // macOS always shows a native menu bar; by default its first menu has
@@ -154,22 +176,6 @@ pub fn run() {
             }
             Ok(())
         })
-        // The macOS "About" menu item asks the frontend to open the modal.
-        .on_menu_event(|app, event| {
-            if event.id().as_ref() == "about" {
-                // Our About is an in-app modal rendered inside the single
-                // webview window. On macOS the menu bar stays active while the
-                // window is minimized (or hidden via Cmd+H), so without this
-                // the modal would open inside a window the user can't see.
-                // Bring the window back to the front first.
-                if let Some(win) = app.get_webview_window("main") {
-                    let _ = win.unminimize();
-                    let _ = win.show();
-                    let _ = win.set_focus();
-                }
-                let _ = app.emit("open-about", ());
-            }
-        })
         .manage(ssh::SessionManager::new())
         .manage(metrics::MetricsManager::new())
         .manage(sftp::SftpManager::new())
@@ -205,6 +211,7 @@ pub fn run() {
             sftp::sftp_disconnect,
             sftp::local_home,
             sftp::local_list,
+            system_bar::set_status_bar_style,
             settings::get_settings,
             settings::set_download_dir,
             backup::export_data,

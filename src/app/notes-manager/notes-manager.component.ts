@@ -1,4 +1,12 @@
-import { Component, computed, input, output, signal } from "@angular/core";
+import {
+  Component,
+  ElementRef,
+  computed,
+  input,
+  output,
+  signal,
+  viewChild,
+} from "@angular/core";
 import { SelectComponent, SelectOption } from "../select/select.component";
 import { Note } from "../models/note.model";
 import { Host } from "../models/host.model";
@@ -50,6 +58,11 @@ export class NotesManagerComponent {
   readonly query = signal("");
   readonly scopeFilter = signal("all");
   readonly copiedId = signal<string | null>(null);
+  /** Mobile only: whether the search field is expanded (otherwise just an icon).
+   *  Has no effect on desktop, where the field is always shown via CSS. */
+  readonly searchOpen = signal(false);
+  private readonly searchRef =
+    viewChild<ElementRef<HTMLInputElement>>("searchRef");
 
   /** Which rows are expanded (showing full command + description). */
   private readonly expandedIds = signal<Set<string>>(new Set());
@@ -242,6 +255,23 @@ export class NotesManagerComponent {
 
   value(event: Event): string {
     return (event.target as HTMLInputElement | HTMLSelectElement).value;
+  }
+
+  // --- mobile collapsible search ---
+  openSearch(): void {
+    this.searchOpen.set(true);
+    setTimeout(() => this.searchRef()?.nativeElement.focus(), 0);
+  }
+  collapseSearch(): void {
+    // Mobile only: on desktop the field is always open (searchOpen stays false),
+    // so Escape here does nothing, keeping desktop search behaviour unchanged.
+    if (!this.searchOpen()) return;
+    this.query.set("");
+    this.searchOpen.set(false);
+  }
+  /** Collapse back to the icon when the field is left empty. */
+  onSearchBlur(): void {
+    if (!this.query().trim()) this.searchOpen.set(false);
   }
 
   async copy(note: Note): Promise<void> {
